@@ -92,7 +92,7 @@ export const columns: ColumnDef<User>[] = [
             const {user} = useKindeBrowserClient();
 
             const handleUpdateUser = async (data: { given_name: string; family_name: string; role: string; email: string }) => {
-              const endpoint = 'http://localhost:3000/api/users/' + row.original.kinde_id
+              const endpoint = `${process.env.KINDE_SITE_URL}/api/users/` + row.original.kinde_id
               const payload = {
                 given_name: data.given_name,
                 family_name: data.family_name,
@@ -118,7 +118,7 @@ export const columns: ColumnDef<User>[] = [
             }
 
             const handleDeleteUser = async (userKindeId: string) => {
-                const endpoint = 'http://localhost:3000/api/users/' + userKindeId
+                const endpoint = `${process.env.KINDE_SITE_URL}/api/users/` + userKindeId
 
                 const payload = {
                   toUserKindeId: user.id
