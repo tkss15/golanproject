@@ -31,7 +31,8 @@ export default function UsersTable({
   // Handler for adding a new user.
 
   const handleAddUser = async (data: { given_name: string; family_name: string; role: string; email: string }) => {
-    const endpoint = 'http://localhost:3000/api/users'
+    const endpoint = `${process.env.KINDE_SITE_URL}/api/users`
+
     // Build the payload; adjust as needed for your API.
     const payload = {
       id: id,
