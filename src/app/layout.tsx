@@ -7,7 +7,7 @@ import { AppSidebar } from "@/components/app-sidebar"
 import Providers from './providers'
 import { ToastContainer } from "@/components/ui/toast-container"
 import type { Viewport } from 'next'
-
+import '@sjmc11/tourguidejs/src/scss/tour.scss'
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
   variable: "--font-geist-sans",

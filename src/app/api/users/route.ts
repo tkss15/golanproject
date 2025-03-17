@@ -4,6 +4,7 @@ import { getToken } from '../auth/kinde';
 import { v4 as uuidv4 } from 'uuid';
 import { getUserByKindId } from '@/lib/queries/users/getUser';
 import { getAllUsersPage } from '@/lib/queries/users/getAllUsers';
+import { sendEmail } from '@/lib/email';
 
 type UserProfile = {
   // Define the shape of your profile here if needed.
@@ -46,7 +47,7 @@ export async function POST(request: Request) {
 
     const client = await getUserByKindId(body.id);
     console.log(client); 
-    if(client.role.includes('admin'))
+    if(!client.role.includes('admin'))
     {
       console.log(client.role);
       return new Response(JSON.stringify({ error: 'You are not authorized to create users' }), { status: 403 });
@@ -108,7 +109,6 @@ export async function POST(request: Request) {
       }
     });
     const responseRolesData = await responseRoles.json();
-    console.log(responseRolesData); 
     const newUser: NewUser = {
       id: providedId,
       kind_id: data.id,
@@ -118,7 +118,8 @@ export async function POST(request: Request) {
       role: body.role ?? ''
     }
     const result = await createUser(newUser);
-    console.log(result);
+
+    await sendEmail(body.identities[0].details.email, (body.profile.given_name + ' ' + body.profile.family_name) || undefined);
 
     return new Response(JSON.stringify(data), {
       status: 201,

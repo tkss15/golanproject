@@ -44,12 +44,11 @@ export default async function ProjectHeader({
               <Badge variant="secondary" className={`${statusColor}`}>{statusNames[project.status]}</Badge> 
               <div className="flex items-center">
                   <span className="text-sm text-gray-600 ml-2">תקציב:</span>
-                  <Progress value={75} className="w-24 ml-2" />
                   <span className="text-sm font-medium">{budgetCurrency}</span>
               </div>
               <div className="flex items-center">
                   <Calendar className="h-4 w-4 text-gray-400 ml-2" />
-                  <span className="text-sm">{startDate} {EndDate ? `- ${EndDate}` : ''}</span>
+                  <span className="text-sm">{startDate} {EndDate ? `- ${EndDate}` : ''}</span>  
               </div>
               <div className="flex items-center">
                   <Briefcase className="h-4 w-4 text-gray-400 ml-2" />

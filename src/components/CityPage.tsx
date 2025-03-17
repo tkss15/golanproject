@@ -12,6 +12,7 @@ import { type insertSettlementSchemaType, type insertStatisticsSchemaType } from
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { format } from 'date-fns'
+import * as XLSX from 'xlsx'
 import { Bar } from "react-chartjs-2"
 import {
   Chart as ChartJS,
@@ -241,6 +242,37 @@ const handlePrintPDF = () => {
   window.print();
 };
 
+const exportToExcel = () => {
+  // Prepare data for export
+  const worksheetData = projects.map(project => ({
+    'שם הפרויקט': project.projects.project_name,
+    'תיאור': project.projects.description,
+    'תאריך התחלה': formatDate(project.projects.start_date),
+    'תאריך סיום': formatDate(project.projects.end_date),
+    'שנת התחלה': new Date(project.projects.start_date).getFullYear(),
+    'תקציב': project.projects.budget
+  }));
+
+  // Create a worksheet
+  const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+  
+  // Format the budget column as currency
+  const range = XLSX.utils.decode_range(worksheet['!ref']);
+  for (let row = range.s.r + 1; row <= range.e.r; row++) {
+    const budgetCell = XLSX.utils.encode_cell({ r: row, c: 5 });
+    if (worksheet[budgetCell] && worksheet[budgetCell].v) {
+      worksheet[budgetCell].z = '₪#,##0';
+    }
+  }
+  
+  // Create a workbook and add the worksheet
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'פרויקטים');
+  
+  // Generate Excel file and trigger download
+  XLSX.writeFile(workbook, `${settlement.name}.xlsx`);
+};
+
 const handleSaveStatistics = async (data: any) => {
   if (!settlement?.settlement_id) {
     console.error('No settlement ID found');
@@ -337,6 +369,7 @@ const handleSaveAll = async () => {
               שמור כ-PDF
             </Button>
             <Button 
+              onClick={exportToExcel}
               className={isMobile ? "flex-grow text-sm" : ""}
             >
               ייצא מידע ל-Excel

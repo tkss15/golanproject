@@ -17,15 +17,32 @@ import {
 } from "chart.js"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Badge } from "@/components/ui/badge"
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, ArcElement, Title, Tooltip, Legend)
 
 interface HomeComponentProps {
   firstName: string
-  activeProjects: number
-  completedProjects: number
-  plannedProjects: number
-  delayedProjects: number
+  activeProjects: {
+    data: Array<any>,
+    accessibleCount: number,
+    totalCount: number
+  }
+  completedProjects: {
+    data: Array<any>,
+    accessibleCount: number,
+    totalCount: number
+  }
+  plannedProjects: {
+    data: Array<any>,
+    accessibleCount: number,
+    totalCount: number
+  }
+  delayedProjects: {
+    data: Array<any>,
+    accessibleCount: number,
+    totalCount: number
+  }
   currentMonthProjects: number
   monthData: { month: string; total_count: number; user_count: number }[]
   last12Months: string[]
@@ -182,11 +199,58 @@ export default function Home({
     labels: ["בביצוע", "הושלם", "מעוכב", "בתכנון"],
     datasets: [
       {
-        data: [activeProjects, completedProjects, delayedProjects, plannedProjects],
+        data: [activeProjects.totalCount, completedProjects.totalCount, delayedProjects.totalCount, plannedProjects.totalCount],
         backgroundColor: ["rgb(0, 182, 182)", "rgb(0, 51, 89)", "rgb(255, 99, 132)", "rgb(255, 205, 86)"],
       },
     ],
   }
+
+  // Define a mock dataset for projects by status (in a real app, this would come from props)
+  // Adding a hasAccess property to simulate permission checks
+  const mockProjectsByStatus = {
+    "בביצוע": [
+      ...activeProjects.data.sort((a,b) => {
+        if(a.hasAccess && !b.hasAccess)
+          return -1;
+        else if(!a.hasAccess && b.hasAccess)
+          return 1;
+        return 0;
+      })
+      // ...upcomingProjects.slice(0, 3).map(p => ({ ...p, status: "בביצוע", hasAccess: true })),
+      // { id: 101, project_name: "פרויקט מוגבל 1", department_name: "מחלקת הנדסה", start_date: new Date(), end_date: new Date(2025, 5, 30), budget: 450000, description: "תיאור פרויקט מוגבל", status: "בביצוע", hasAccess: false },
+      // { id: 102, project_name: "פרויקט מוגבל 2", department_name: "מחלקת שירותים", start_date: new Date(), end_date: new Date(2025, 8, 15), budget: 280000, description: "תיאור פרויקט מוגבל נוסף", status: "בביצוע", hasAccess: false }
+    ],
+    "הושלם": [
+      ...completedProjects.data.sort((a,b) => {
+        if(a.hasAccess && !b.hasAccess)
+          return -1;
+        else if(!a.hasAccess && b.hasAccess)
+          return 1;
+        return 0;
+      })
+    ],
+    "מעוכב": [
+      ...delayedProjects.data.sort((a,b) => {
+        if(a.hasAccess && !b.hasAccess)
+          return -1;
+        else if(!a.hasAccess && b.hasAccess)
+          return 1;
+        return 0;
+      })    ],
+    "בתכנון": [
+      ...plannedProjects.data.sort((a,b) => {
+        if(a.hasAccess && !b.hasAccess)
+          return -1;
+        else if(!a.hasAccess && b.hasAccess)
+          return 1;
+        return 0;
+      })
+     ]
+  };
+
+  // State for status filter modal
+  const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
+  const [statusDialogOpen, setStatusDialogOpen] = useState(false);
 
   const monthlyData = {
     labels: last12Months,
@@ -233,8 +297,8 @@ export default function Home({
       <h1 className="text-2xl md:text-4xl font-bold mb-4 md:mb-8 text-blue-800">שלום {firstName}</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-4 md:mb-6">
-        <Card>
-          <CardHeader className="p-4">
+        <Card data-tg-order='2'  data-tg-tour='מציג את הכמות הכללית של פרוייקטים במערכת בלחיצה על תווית ניתן לשנות את הגרף'>
+          <CardHeader className="p-4" >
             <CardTitle className="text-lg md:text-xl text-blue-800">מספר פרויקטים</CardTitle>
             <div className="text-xs md:text-sm text-gray-600">כמות פרויקטים חודשית</div>
             <div className="text-xs md:text-sm">
@@ -255,8 +319,34 @@ export default function Home({
           </CardHeader>
           <CardContent className="p-4">
             <div className="h-64 md:h-64 lg:h-72">
-              <Line
-                data={fundingSourcesData}
+              <Bar
+                data={{
+                  labels: fundingSourcesData.labels,
+                  datasets: [
+                    {
+                      label: 'תקציב',
+                      data: fundingSourcesData.datasets[0].data,
+                      backgroundColor: [
+                        'rgba(0, 182, 182, 0.7)',
+                        'rgba(0, 51, 89, 0.7)',
+                        'rgba(54, 162, 235, 0.7)',
+                        'rgba(153, 102, 255, 0.7)',
+                        'rgba(75, 192, 192, 0.7)',
+                        'rgba(255, 159, 64, 0.7)',
+                      ],
+                      borderColor: [
+                        'rgb(0, 182, 182)',
+                        'rgb(0, 51, 89)',
+                        'rgb(54, 162, 235)',
+                        'rgb(153, 102, 255)',
+                        'rgb(75, 192, 192)',
+                        'rgb(255, 159, 64)',
+                      ],
+                      borderWidth: 1,
+                      maxBarThickness: 50
+                    }
+                  ]
+                }}
                 options={{
                   responsive: true,
                   maintainAspectRatio: false,
@@ -266,9 +356,15 @@ export default function Home({
                       ticks: {
                         callback: (value) => {
                           if (typeof value === "number") {
-                            return `₪${value.toLocaleString()}`
+                            // Abbreviate large numbers
+                            if (value >= 1000000) {
+                              return `₪${(value / 1000000).toFixed(1)}M`;
+                            } else if (value >= 1000) {
+                              return `₪${(value / 1000).toFixed(0)}K`;
+                            }
+                            return `₪${value.toLocaleString()}`;
                           }
-                          return value
+                          return value;
                         },
                         font: {
                           size: 12
@@ -278,8 +374,10 @@ export default function Home({
                     x: {
                       ticks: {
                         font: {
-                          size: 12
-                        }
+                          size: 11
+                        },
+                        maxRotation: 45,
+                        minRotation: 45
                       }
                     }
                   },
@@ -290,8 +388,8 @@ export default function Home({
                     tooltip: {
                       callbacks: {
                         label: (tooltipItem) => {
-                          const value = tooltipItem.parsed.y
-                          return `₪${value.toLocaleString()}`
+                          const value = tooltipItem.parsed.y;
+                          return `תקציב: ₪${value.toLocaleString()}`;
                         },
                       },
                     },
@@ -302,7 +400,7 @@ export default function Home({
           </CardContent>
         </Card>
 
-        <Card>
+        <Card data-tg-order='3' data-tg-tour='מציג שכלול של כלל הפרוייקטים הרלוונטים למשתמש המחובר. בלחיצה על אחד מן הסטטוסים תוצג רשימה של פרוייקטים רלוונטים'>
           <CardHeader className="p-4">
             <CardTitle className="text-lg md:text-xl text-blue-800">סטטוס פרויקטים</CardTitle>
             <div className="text-xs md:text-sm text-gray-600">התפלגות לפי סטטוס</div>
@@ -317,30 +415,50 @@ export default function Home({
                   plugins: {
                     legend: {
                       position: "right",
-                      //align: "start", // Aligns items to the start of the legend box
                       labels: {
                         boxWidth: 10,
                         font: {
                           size: 14
                         },
-                        padding: 30, // Adds padding between legend items and chart
-                        // Use usePointStyle to make the legend markers smaller
+                        padding: 30,
                         usePointStyle: true,
                         pointStyle: 'circle'
                       },
-                      // Increase the overall chart margins instead of using padding
-                      // This creates more space on the right side
                       title: {
                         padding: {
                           right: 20
                         }
                       }
                     },
+                    tooltip: {
+                      callbacks: {
+                        title: (context) => context[0].label,
+                        label: (context) => {
+                          return `מספר פרויקטים: ${context.raw}`;
+                        },
+                        footer: () => 'לחץ כדי לראות פרויקטים'
+                      }
+                    }
                   },
-                  // Add extra margin on the right side of the entire chart
                   layout: {
                     padding: {
                       right: 30
+                    }
+                  },
+                  // Add onClick handler
+                  onClick: (event, elements) => {
+                    if (elements && elements.length > 0) {
+                      const index = elements[0].index;
+                      const statusLabel = statusData.labels[index] as string;
+                      setSelectedStatus(statusLabel);
+                      setStatusDialogOpen(true);
+                    }
+                  },
+                  // Make cursor show as pointer when hovering over chart
+                  onHover: (event, elements) => {
+                    if (event && event.native) {
+                      const canvas = event.native.target as HTMLCanvasElement;
+                      canvas.style.cursor = elements && elements.length > 0 ? 'pointer' : 'default';
                     }
                   }
                 }}
@@ -349,6 +467,108 @@ export default function Home({
           </CardContent>
         </Card>
 
+        {/* Status Filter Dialog */}
+        <Dialog open={statusDialogOpen} onOpenChange={setStatusDialogOpen}>
+          <DialogContent className="w-full max-w-[95vw] md:max-w-[800px] rtl p-4" dir="rtl">
+            <DialogHeader className="border-b pb-4">
+              <DialogTitle className="text-xl md:text-3xl font-bold text-blue-800 text-right flex items-center">
+                <div
+                  className="w-4 h-4 rounded-full mr-2"
+                  style={{
+                    backgroundColor: selectedStatus === 'בביצוע' ? 'rgb(0, 182, 182)' :
+                                   selectedStatus === 'הושלם' ? 'rgb(0, 51, 89)' :
+                                   selectedStatus === 'מעוכב' ? 'rgb(255, 99, 132)' :
+                                   selectedStatus === 'בתכנון' ? 'rgb(255, 205, 86)' : '#ccc'
+                  }}
+                />
+                פרויקטים בסטטוס: {selectedStatus}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="mt-4 space-y-4 overflow-y-auto max-h-[70vh]">
+              {selectedStatus && mockProjectsByStatus[selectedStatus] && mockProjectsByStatus[selectedStatus].length > 0 ? (
+                <div className="grid grid-cols-1 gap-4">
+                  {mockProjectsByStatus[selectedStatus].map((project) => (
+                    <div key={project.id} className="bg-white rounded-lg shadow-md p-4 hover:shadow-lg transition-shadow">
+                      <div className="flex justify-between items-center mb-3">
+                        <h3 className="text-lg font-semibold text-blue-800">{project.project_name}</h3>
+                        <div className="flex items-center gap-2">
+                          <Badge 
+                            style={{
+                              backgroundColor: selectedStatus === 'בביצוע' ? 'rgb(0, 182, 182)' :
+                                             selectedStatus === 'הושלם' ? 'rgb(0, 51, 89)' :
+                                             selectedStatus === 'מעוכב' ? 'rgb(255, 99, 132)' :
+                                             selectedStatus === 'בתכנון' ? 'rgb(255, 205, 86)' : '#ccc'
+                            }}
+                          >
+                            {selectedStatus}
+                          </Badge>
+                          {!project.hasAccess && (
+                            <Badge variant="outline" className="border-orange-500 text-orange-500">
+                              גישה מוגבלת
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-3 text-sm mb-3">
+                        <div>
+                          <span className="font-semibold">תאריך התחלה: </span>
+                          <span>{formatDate(project.start_date)}</span>
+                        </div>
+                        <div>
+                          <span className="font-semibold">תאריך סיום: </span>
+                          <span>{formatDate(project.end_date)}</span>
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-3 text-sm mb-3">
+                        <div>
+                          <span className="font-semibold">מחלקה: </span>
+                          <span>{project.department_name}</span>
+                        </div>
+                        <div>
+                          <span className="font-semibold">תקציב: </span>
+                          <span>{formatCurrency(project.budget)}</span>
+                        </div>
+                      </div>
+                      
+                      {project.description && (
+                        <div className="mb-3">
+                          <p className="text-sm text-gray-600 line-clamp-2">{project.description}</p>
+                        </div>
+                      )}
+                      
+                      <div className="flex justify-end">
+                        {project.hasAccess ? (
+                          <Button 
+                            size="sm"
+                            onClick={() => window.location.href = `/projects/${project.id}`}
+                          >
+                            עבור לפרויקט
+                          </Button>
+                        ) : (
+                          <Button 
+                            size="sm"
+                            variant="outline"
+                            disabled
+                            className="text-gray-500 cursor-not-allowed"
+                          >
+                            אין גישה לפרויקט
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-10">
+                  <p className="text-gray-500">לא נמצאו פרויקטים בסטטוס זה</p>
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+
         <Card>
           <CardHeader className="p-4">
             <CardTitle className="text-lg md:text-xl text-blue-800">מחלקות מובילות</CardTitle>
@@ -356,14 +576,46 @@ export default function Home({
           </CardHeader>
           <CardContent className="p-4">
             <div className="h-64 md:h-64 lg:h-72">
-              <Line
-                data={departmentData}
+              <Bar
+                data={{
+                  labels: departmentData.labels,
+                  datasets: [
+                    {
+                      label: 'פרויקטים פעילים',
+                      data: departmentData.datasets[0].data.map((value, index) => value * 0.6), // Simulating active projects
+                      backgroundColor: 'rgba(0, 182, 182, 0.7)',
+                      borderColor: 'rgb(0, 182, 182)',
+                      borderWidth: 1,
+                      barPercentage: 0.8,
+                      categoryPercentage: 0.5
+                    },
+                    {
+                      label: 'פרויקטים מתוכננים',
+                      data: departmentData.datasets[0].data.map((value, index) => value * 0.3), // Simulating planned projects
+                      backgroundColor: 'rgba(0, 51, 89, 0.7)',
+                      borderColor: 'rgb(0, 51, 89)',
+                      borderWidth: 1,
+                      barPercentage: 0.8,
+                      categoryPercentage: 0.5
+                    },
+                    {
+                      label: 'פרויקטים הושלמו',
+                      data: departmentData.datasets[0].data.map((value, index) => value * 0.1), // Simulating completed projects
+                      backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                      borderColor: 'rgb(54, 162, 235)',
+                      borderWidth: 1,
+                      barPercentage: 0.8,
+                      categoryPercentage: 0.5
+                    }
+                  ]
+                }}
                 options={{
                   responsive: true,
                   maintainAspectRatio: false,
                   scales: {
                     y: {
                       beginAtZero: true,
+                      stacked: true,
                       ticks: {
                         stepSize: 1,
                         precision: 0,
@@ -373,6 +625,7 @@ export default function Home({
                       },
                     },
                     x: {
+                      stacked: true,
                       ticks: {
                         font: {
                           size: 12
@@ -382,11 +635,18 @@ export default function Home({
                   },
                   plugins: {
                     legend: {
-                      display: false,
+                      display: true,
+                      position: 'bottom',
+                      labels: {
+                        boxWidth: 10,
+                        font: {
+                          size: 12
+                        }
+                      }
                     },
                     tooltip: {
                       callbacks: {
-                        label: (context) => `${context.raw} פרויקטים`,
+                        label: (context) => `${context.dataset.label}: ${Math.round(context.parsed.y)} פרויקטים`,
                       },
                     },
                   },
@@ -411,7 +671,7 @@ export default function Home({
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mt-4 md:mt-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mt-4 md:mt-6" data-tg-order='4' data-tg-tour="פרויקטים קרובים ומעקב - לחץ על שם הפרויקט לפרטים נוספים ולמעבר לדף הפרויקט"> 
         {/* רשימת הפרויקטים הקרובים לסיום */}
         <Card className="mb-4 md:mb-0">
           <CardHeader className="p-4">

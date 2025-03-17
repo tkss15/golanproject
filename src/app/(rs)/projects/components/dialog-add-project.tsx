@@ -21,7 +21,6 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { Label } from "@/components/ui/label"
-import { Calendar } from "@/components/ui/calendar"
 import { format } from "date-fns"
 import { CalendarIcon, Mail, Phone, AlertTriangle, Users2, FolderKanban, CheckCircle2, HousePlusIcon, ChevronsUpDown, Check } from "lucide-react"
 import { motion } from "framer-motion"
@@ -33,6 +32,7 @@ import { Settlement } from "../../cities/columns"
 import { useKindeBrowserClient } from "@kinde-oss/kinde-auth-nextjs";
 import { he } from "date-fns/locale"
 import { useToast } from "@/hooks/useToast"
+import {CalendarWithYearNav} from "@/components/ui/calendarwithyear"
 
 interface Department {
   id: number;
@@ -117,13 +117,25 @@ export default function DialogAddProject({
   const handleDateSelect = (selectedDate: Date | undefined) => {
     setDate(selectedDate)
     if (selectedDate) {
-      setFormData((prev) => ({ ...prev, end_date: format(selectedDate, "yyyy-MM-dd") }))
+      setFormData((prev) => ({ ...prev, start_date: format(selectedDate, "yyyy-MM-dd") }))
+      
+      // If end date is before the new start date, clear end date
+      if (endDate && selectedDate > endDate) {
+        setEndDate(undefined)
+        setFormData((prev) => ({ ...prev, end_date: "" }))
+      }
     }
   }
   const handleEndDateSelect = (selectedDate: Date | undefined) => {
     setEndDate(selectedDate)
     if (selectedDate) {
       setFormData((prev) => ({ ...prev, end_date: format(selectedDate, "yyyy-MM-dd") }))
+      
+      // If start date is after the new end date, update the start date
+      if (date && selectedDate < date) {
+        setDate(selectedDate)
+        setFormData((prev) => ({ ...prev, start_date: format(selectedDate, "yyyy-MM-dd") }))
+      }
     }
   }
   const handleOpenChange = () => {
@@ -229,7 +241,12 @@ export default function DialogAddProject({
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0">
-                    <Calendar mode="single" selected={date} onSelect={handleDateSelect} initialFocus />
+                    <CalendarWithYearNav
+                      mode='single'
+                      selected={date}
+                      onSelect={handleDateSelect}
+                      initialFocus
+                    />
                   </PopoverContent>
                 </Popover>
               </div>
@@ -248,7 +265,14 @@ export default function DialogAddProject({
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0">
-                    <Calendar mode="single" selected={endDate} onSelect={handleEndDateSelect} initialFocus />
+                    {/* <DatePickerWithYearNav/> */}
+                    <CalendarWithYearNav
+                      mode='single'
+                      startMonth={date ?? new Date()}
+                      selected={endDate}
+                      onSelect={handleEndDateSelect}
+                      initialFocus
+                    />
                   </PopoverContent>
                 </Popover>
               </div>

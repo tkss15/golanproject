@@ -2,7 +2,7 @@
 
 import { ColumnDef } from "@tanstack/react-table"
 import { Checkbox } from "@/components/ui/checkbox"
-import { ArrowUpDown, MoreHorizontal } from "lucide-react"
+import { ArrowUpDown, MoreHorizontal, Router } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
@@ -11,6 +11,7 @@ import { useState } from "react"
 import { DeleteUserDialog } from "@/components/delete-dialog"
 import {useKindeBrowserClient} from "@kinde-oss/kinde-auth-nextjs";
 import { AddUserDialog } from "./add-user-dialog"
+import { useRouter } from "next/navigation"
 
 // Define the User type
 export type User = {
@@ -86,13 +87,14 @@ export const columns: ColumnDef<User>[] = [
         accessorKey: "actions",
         header: () => <div className="text-right">פעולות</div>,
         cell: ({ row }) => {
+            const router = useRouter()
             const [showDeleteDialog, setShowDeleteDialog] = useState(false);
             const [dropdownOpen, setDropdownOpen] = useState(false);
             const [showEditDialog, setShowEditDialog] = useState(false);
             const {user} = useKindeBrowserClient();
 
             const handleUpdateUser = async (data: { given_name: string; family_name: string; role: string; email: string }) => {
-              const endpoint = 'http://localhost:3000/api/users/' + row.original.kinde_id
+              const endpoint = `${process.env.NEXT_PUBLIC_SITE_URL}/api/users/` + row.original.kinde_id
               const payload = {
                 given_name: data.given_name,
                 family_name: data.family_name,
@@ -104,6 +106,10 @@ export const columns: ColumnDef<User>[] = [
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
               })
+              if(resposnse.ok)
+              {
+                router.push('/users')
+              }
             }
             const handleDeleteClick = (e: React.MouseEvent) => {
               e.stopPropagation(); // Prevent event bubbling
@@ -118,7 +124,7 @@ export const columns: ColumnDef<User>[] = [
             }
 
             const handleDeleteUser = async (userKindeId: string) => {
-                const endpoint = 'http://localhost:3000/api/users/' + userKindeId
+                const endpoint = `${process.env.NEXT_PUBLIC_SITE_URL}/api/users/` + userKindeId
 
                 const payload = {
                   toUserKindeId: user.id

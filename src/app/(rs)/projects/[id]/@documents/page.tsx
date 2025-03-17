@@ -18,7 +18,7 @@ export default async function ProjectHeader({
         return <p>Waiting for ID</p>
         
     const files = await getFilesByProject(project_id);
-
+    console.log(files);
     // // if (!searchParams.project_id) return null
     return (
         <Card dir="rtl" className="h-full text-right my-auto">
@@ -37,7 +37,7 @@ export default async function ProjectHeader({
                     )}
 
                     {files.map((file) => (
-                        <FileCard key={file.file_name} {...file} />
+                        <FileCard key={file.id} {...file} />
                     ))}
                 </div>
 

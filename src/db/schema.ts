@@ -96,6 +96,8 @@ export const fundingSources = pgTable('funding_sources', {
   contact_details: text('contact_details')
 });
 
+ 
+
 export const projectFundingSources = pgTable('project_funding_sources', {
   id: serial('id').primaryKey(),
   project_id: integer('project_id').notNull().references(() => projects.id),

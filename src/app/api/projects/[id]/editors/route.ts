@@ -1,10 +1,16 @@
-import { getUserByKindId } from "@/lib/queries/users/getUser";
+import { getUserByKindId, getUser } from "@/lib/queries/users/getUser";
 import { createLog } from "@/lib/logs";
 import { ProjectEditor } from "@/zod-schemas/project_editors";
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 import { getAllUsersProject } from "@/lib/queries/getAllUsersProject";
 import { createProjectEditors, deleteProjectEditors } from "@/lib/queries/projects/editors/createProjectEditor";
+import { sendInviteEmail } from "@/lib/email";
+import { getProject } from "@/lib/queries/projects/getProject";
+import {insertProjecSchemaType} from '@/zod-schemas/projects'
 
+const baseUrl = process.env.VERCEL_URL
+? `https://${process.env.VERCEL_URL}`
+: '';
 export async function POST(request: Request, { params }: { params: { id: string } }) {
     try {
         // Extract and validate project ID
@@ -26,7 +32,8 @@ export async function POST(request: Request, { params }: { params: { id: string 
         }
         
         const inviter = await getUserByKindId(kindeUser.id);
-        
+        const project: insertProjecSchemaType = await getProject(projectId);
+
         // Get current project editors
         const currentEditors = await getAllUsersProject(projectId);
         const currentEditorIds = currentEditors.map(editor => editor.user?.id);
@@ -52,6 +59,8 @@ export async function POST(request: Request, { params }: { params: { id: string 
         if (editorsToAdd.length > 0) {
             await createProjectEditors(projectEditorObjects);
         }
+        const url = `${baseUrl}/projects/${projectId}`
+        await inviteAllEditors(editorsToAdd, project.project_name, (inviter.first_name + ' ' + inviter.last_name), inviter.email,url)
 
         if (editorsToRemove.length > 0) {
             await deleteProjectEditors(projectId, editorsToRemove);
@@ -87,6 +96,14 @@ export async function POST(request: Request, { params }: { params: { id: string 
             { status: 500 }
         );
     }
+}
+
+async function inviteAllEditors(editorsToAdd: string[], projectName: string, invitedByUsername: string, invitedByEmail: string, inviteLink: string) {
+    return Promise.all(editorsToAdd.map(async (editorId) => {
+        const editorIdInt = parseInt(editorId);
+        const editorData = await getUser(editorIdInt)
+        await sendInviteEmail(editorData.email,projectName,(editorData.first_name + ' ' + editorData.last_name),invitedByUsername, invitedByEmail, inviteLink);
+    }));
 }
 
 function createLogDescription(addedCount: number, removedCount: number): string {

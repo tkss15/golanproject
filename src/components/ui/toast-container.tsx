@@ -1,6 +1,6 @@
 // components/ToastContainer.tsx
 'use client'
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useToastStore } from '@/store/toast-store';
 import { cn } from '@/lib/utils';
 import { AnimatedList } from "@/components/ui/animated-ui";
@@ -36,7 +36,7 @@ export const ToastContainer = () => {
   }, [toasts, removeToast]);
 
   return (
-    <div className="fixed bottom-4 left-1/2 md:left-4 -translate-x-1/2 md:translate-x-0 h-[100px] md:h-[200px] overflow-hidden p-2 z-50 flex flex-col gap-2">
+    <div className="fixed bottom-4 left-1/2 md:left-4 -translate-x-1/2 md:translate-x-0 h-[100px] md:h-[200px] overflow-hidden p-2 z-50 flex flex-col gap-2 tour-toast-container">
         <AnimatedList>
           {toasts.map((toast) => (
               <Notification  key={toast.id} id={toast.id} onDelete={removeToast} name={toast.name} description={toast.description} icon={toast.icon} color={typeToColor[toast.color as keyof typeof typeToColor]} time={toast.time} />
@@ -48,6 +48,27 @@ export const ToastContainer = () => {
 };
 
 const Notification = ({ id, name, description, icon, color, time, onDelete }: Item) => {
+    const [isTourToast, setIsTourToast] = useState<boolean>(false);
+    
+    // Check if this is a tour-related toast
+    useEffect(() => {
+      if (description && description.includes('סיור') && name.includes('ברוכים הבאים')) {
+        setIsTourToast(true);
+      }
+    }, [description, name]);
+    
+    const handleToastClick = () => {
+      // For tour toasts, we want to start the tour
+      if (isTourToast) {
+        // Navigate to the tour URL
+        const currentUrl = window.location.pathname;
+        window.location.href = `${currentUrl}?tour=true`;
+      }
+      
+      // Always remove the toast when clicked
+      onDelete(id);
+    };
+    
     const getIcon = () => {
         switch (icon) {
             case 'info':
@@ -64,7 +85,7 @@ const Notification = ({ id, name, description, icon, color, time, onDelete }: It
     }
     return (
       <figure
-        onClick={() => onDelete(id)}
+        onClick={handleToastClick}
         className={cn(
           "relative mx-auto min-h-fit w-full max-w-[400px] cursor-pointer overflow-hidden rounded-2xl p-4",
           // animation styles

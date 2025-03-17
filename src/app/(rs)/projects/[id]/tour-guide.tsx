@@ -1,53 +1,45 @@
 'use client'
-import '@sjmc11/tourguidejs/src/scss/tour.scss'
 import { useEffect, useRef } from 'react'
 import dynamic from 'next/dynamic'
-import { TourGuideClient } from '@sjmc11/tourguidejs'
+import { useTourStore } from '@/store/tour-store'
 
-function ProjectTourGuideInner({ setTab }: { setTab?: (tab: string) => void }) {
-  const tourInitialized = useRef(false)
-  const currentTour = useRef<TourGuideClient | null>(null)
+function ProjectTourGuideInner() {
+  const tourRef = useRef<any>(null)
+  const { isOn } = useTourStore()
 
   useEffect(() => {
-    if (tourInitialized.current) return
+    const setupTour = async () => {
+      // Import the TourGuideClient only once and store it in the ref.
+      if (!tourRef.current) {
+        const { TourGuideClient } = await import('@sjmc11/tourguidejs')
+        tourRef.current = new TourGuideClient({
+          dialogClass: 'rtl-dialog',
+        })
+      }
 
-    const initTour = async () => {
-      const { TourGuideClient } = await import('@sjmc11/tourguidejs')
-      const tg = new TourGuideClient({
-        // language: {
-        //   next: "הבא", 
-        //   previous: "הקודם",
-        //   skip: "דלג",
-        //   done: "סיום"
-        // },
-        dialogClass: 'rtl-dialog',
-      })
-
-      tg.onAfterStepChange(() => {
-        if (tg.activeStep === 8 && setTab) {
-          setTab('settings')
-        }
-      })
-
-
-      currentTour.current = tg
-
-      const urlParams = new URLSearchParams(window.location.search)
-      if (urlParams.get('tour') === 'true') {
-        tg.start()
+      // Toggle the tour based on the isOn state from the store.
+      if (isOn) {
+        tourRef.current.start()
+      } else {
+        tourRef.current.exit()
       }
     }
-    tourInitialized.current = true
-    initTour()
-  }, [setTab])
+
+    setupTour()
+
+    // Cleanup on component unmount.
+    return () => {
+      if (tourRef.current) {
+        tourRef.current.exit()
+      }
+    }
+  }, [isOn])
 
   return null
 }
 
-// ייצוא קומפוננטה שנטענת רק בצד הלקוח
+// Export as a dynamically loaded client-side component.
 export const ProjectTourGuide = dynamic(
-  () => Promise.resolve(({ setTab }: { setTab?: (tab: string) => void }) => (
-    <ProjectTourGuideInner setTab={setTab} />
-  )),
+  () => Promise.resolve(ProjectTourGuideInner),
   { ssr: false }
 )

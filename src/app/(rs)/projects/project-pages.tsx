@@ -24,7 +24,6 @@ import { PaginationDemo } from '@/components/pagenation-component'
 import { useMediaQuery } from "@/hooks/useMediaQuery"
 import { SelectDepartment, SelectFunder } from './components/selectdepartment'
 import FilterComponent from './components/filtercomponent'
-import { ComboboxPopover } from './components/popoverCombo'
 type Props = {
   prop_departments: any[]
   prop_funding_sources: any[]
@@ -32,15 +31,29 @@ type Props = {
   prop_department_id?: number,
   prop_funder_id?: number,
   projects?: any[],
-  count: number
+  count: number,
+  start_date?: string,
+  end_date?: string
 }
 type ViewType = "מחלקות" | "מקורות מימון" 
 
-export default function Home({ projects, prop_sort_by, prop_department_id, prop_funder_id, prop_departments, prop_funding_sources, count }: Props) {
+export default function Home({ 
+  projects, 
+  prop_sort_by, 
+  prop_department_id, 
+  prop_funder_id, 
+  prop_departments, 
+  prop_funding_sources, 
+  count,
+  start_date,
+  end_date 
+}: Props) {
   const router = useRouter()
   const [selectedProjects, setSelectedProjects] = useState<any[]>(projects ?? [])
   const [selectDepartment, setSelectedDepartment] = useState<number | null>((prop_sort_by === 'מחלקות') ? prop_department_id ?? null : prop_funder_id ?? null);
   const [searchDepartment, setSearchDepartment] = useState<string>('');
+  const [startDateFilter, setStartDateFilter] = useState<string | undefined>(start_date);
+  const [endDateFilter, setEndDateFilter] = useState<string | undefined>(end_date);
   const [currentView, setCurrentView] = useState<ViewType>(prop_sort_by ?? 'מחלקות')
   const [loading, setLoading] = useState(false)
   const [departments, setDepartments] = useState(prop_departments);
@@ -66,6 +79,38 @@ export default function Home({ projects, prop_sort_by, prop_department_id, prop_
     params.delete("funder_id");
     router.push(`${pathname}?${params.toString()}`);
   };
+  
+  const cancelStartDate = () => {
+    const params = new URLSearchParams(searchParams);
+    params.delete("start_date");
+    router.push(`${pathname}?${params.toString()}`);
+  };
+  
+  const cancelEndDate = () => {
+    const params = new URLSearchParams(searchParams);
+    params.delete("end_date");
+    router.push(`${pathname}?${params.toString()}`);
+  };
+  
+  const applyDateFilter = (start?: string, end?: string) => {
+    const params = new URLSearchParams(searchParams);
+    
+    // Update or remove start_date parameter
+    if (start) {
+      params.set("start_date", start);
+    } else {
+      params.delete("start_date");
+    }
+    
+    // Update or remove end_date parameter
+    if (end) {
+      params.set("end_date", end);
+    } else {
+      params.delete("end_date");
+    }
+    
+    router.push(`${pathname}?${params.toString()}`);
+  };
 
   // Properly handle department selection and filtering
   useEffect(() => {
@@ -83,8 +128,6 @@ export default function Home({ projects, prop_sort_by, prop_department_id, prop_
     ) : filteredDepartments;
     setDepartments(departmentEmpty);
   }, [searchDepartment, prop_departments, currentView]);
-  console.log(prop_department_id, prop_funder_id)
-  console.log(departments, fundingSources)
 
   // Simplified department selection
   useEffect(() => {
@@ -100,6 +143,15 @@ export default function Home({ projects, prop_sort_by, prop_department_id, prop_
   useEffect(() => {
     setFundingSources(prop_funding_sources ?? []);
   }, [prop_funding_sources])
+  // Update date states when props change
+  useEffect(() => {
+    setStartDateFilter(start_date);
+  }, [start_date]);
+  
+  useEffect(() => {
+    setEndDateFilter(end_date);
+  }, [end_date]);
+
   useEffect(() => {
     setSelectedProjects(projects ?? []);
   }, [projects])
@@ -188,15 +240,60 @@ export default function Home({ projects, prop_sort_by, prop_department_id, prop_
           </Link>
         </div>
         <div className='relative mb-4'>
-          <div className='flex gap-2'>
+          <div className='flex gap-2 items-center mb-2'>
             <GoogleSearchAutocomplete/>
+          </div>
+          
+          {/* Date filter section */}
+          <div className='flex gap-2 items-center mb-2 mt-2'>
+            <div className='flex flex-col md:flex-row gap-2'>
+              <div className='flex items-center'>
+                <label className='text-sm mr-2 ml-2'>מתאריך:</label>
+                <Input
+                  type="date"
+                  value={startDateFilter || ''}
+                  onChange={(e) => setStartDateFilter(e.target.value || undefined)}
+                  className='w-32'
+                />
+                {startDateFilter && (
+                  <Button size="sm" variant="ghost" onClick={cancelStartDate} className='p-1'>
+                    <X className='h-4 w-4' />
+                  </Button>
+                )}
+              </div>
+              
+              <div className='flex items-center'>
+                <label className='text-sm mr-2 ml-2'>עד תאריך:</label>
+                <Input
+                  type="date"
+                  value={endDateFilter || ''}
+                  onChange={(e) => setEndDateFilter(e.target.value || undefined)}
+                  className='w-32'
+                />
+                {endDateFilter && (
+                  <Button size="sm" variant="ghost" onClick={cancelEndDate} className='p-1'>
+                    <X className='h-4 w-4' />
+                  </Button>
+                )}
+              </div>
+              
+              <Button 
+                onClick={() => applyDateFilter(startDateFilter, endDateFilter)}
+                size="sm"
+                className='mt-2 md:mt-0'
+              >
+                החל סינון תאריכים
+              </Button>
+            </div>
           </div>
           <div className='grid grid-cols-2 gap-2 md:hidden'>
             <SelectDepartment departments={departments} selectedDep={prop_department_id ?? 0} />
             <SelectFunder fundingSources={fundingSources} selectedDep={prop_funder_id ?? 0} />
             <div className='flex gap-2'>
               {selectedDepartment && <Badge onClick={cancelDepartment} variant='default' className='w-20 cursor-pointer'>{selectedDepartment?.department_name} <X className='mr-auto h-4 w-4'/></Badge>}
-              {selectedFunder && <Badge onClick={cancelFunder} variant="default" className='w-20 cursor-pointer'>{selectedFunder?.source_name} <X className='h-4 w-4'/></Badge>} 
+              {selectedFunder && <Badge onClick={cancelFunder} variant="default" className='w-20 cursor-pointer'>{selectedFunder?.source_name} <X className='h-4 w-4'/></Badge>}
+              {startDateFilter && <Badge onClick={cancelStartDate} variant="outline" className='cursor-pointer'>מתאריך: {startDateFilter} <X className='ml-1 h-3 w-3'/></Badge>}
+              {endDateFilter && <Badge onClick={cancelEndDate} variant="outline" className='cursor-pointer'>עד תאריך: {endDateFilter} <X className='ml-1 h-3 w-3'/></Badge>}
             </div>
           </div>
         </div>

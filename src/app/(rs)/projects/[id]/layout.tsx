@@ -60,7 +60,6 @@ export default function DashboardLayout({
                     </div>
                 </div>
             </div>
-            <ProjectTourGuide setTab={setTab}/>
         </ProjectProvider>
     )
 }

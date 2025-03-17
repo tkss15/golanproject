@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import HomeComponent from "./home"
-import { getProjectsByStatus } from "@/lib/queries/getProjectsByStatus"
+import { getProjectsByStatus, getProjectsByStatusData, getAllProjectsByStatusWithAccessInfo } from "@/lib/queries/getProjectsByStatus"
 import { getMonthlyProjects } from "@/lib/queries/getMonthlyProjects"
 import { getUpcomingProjects } from "@/lib/queries/getUpcomingProjects"
 import { getNewestProjects } from "@/lib/queries/getNewestProjects"
@@ -10,20 +10,38 @@ import { getSettlementBudgets } from "@/lib/queries/getSettlementBudgets"
 import { getTopDepartments } from "@/lib/queries/getTopDepartments"
 import { getTopFundingSources } from "@/lib/queries/getTopFundingSources"
 import { getProject } from "@/lib/queries/projects/getProject"
+import { getUserByKindId } from "@/lib/queries/users/getUser";
 export const metadata = {
     title: 'Home',
+}
+
+
+const alterDataAccess = (data:Array<any>,access: boolean) => {
+    return data.map(project => {
+        const projectAccess = project.hasAccess ? true : access;
+        return {...project, hasAccess: projectAccess}
+    })
 }
 export default async function Home() {
     const { getUser } = await getKindeServerSession();
     const userResult = await getUser();
     const user = userResult ? userResult : { id: null };
+    const myUser = await getUserByKindId(userResult.id);
+    const isAdmin = myUser.role === 'admin';
+    // const activeProjects = await getProjectsByStatus('1');          // פעיל
+    // const plannedProjects = await getProjectsByStatus('2');         // בתכנון
+    // const delayedProjects = await getProjectsByStatus('3');         // מעוכב
+    // const completedProjects = await getProjectsByStatus('4');       // הושלם
+    const activeProjects = await getAllProjectsByStatusWithAccessInfo('1', myUser.id, 5,0);
+    const plannedProjects = await getAllProjectsByStatusWithAccessInfo('2', myUser.id, 5,0);
+    const delayedProjects = await getAllProjectsByStatusWithAccessInfo('3', myUser.id, 5,0);
+    const completedProjects = await getAllProjectsByStatusWithAccessInfo('4', myUser.id, 5,0);
 
-    const activeProjects = await getProjectsByStatus('1');          // פעיל
-    const plannedProjects = await getProjectsByStatus('2');         // בתכנון
-    const delayedProjects = await getProjectsByStatus('3');         // מעוכב
-    const completedProjects = await getProjectsByStatus('4');       // הושלם
+    activeProjects.data = [ ...alterDataAccess(activeProjects.data, isAdmin)]
+    plannedProjects.data = [ ...alterDataAccess(plannedProjects.data, isAdmin)]
+    delayedProjects.data = [ ...alterDataAccess(delayedProjects.data, isAdmin)]
+    completedProjects.data = [ ...alterDataAccess(completedProjects.data, isAdmin)]
 
-    console.log('User ID:', user.id);
     const monthData = await getMonthlyProjects(user?.id || '');
 
     // Get current month's total projects
@@ -37,9 +55,8 @@ export default async function Home() {
     });
 
     // Fetch projects for bottom tables
-    const { projects: upcomingProjects } = await getUpcomingProjects();
-    const { projects: newestProjects } = await getNewestProjects();
-
+    const { projects: upcomingProjects } = await getUpcomingProjects(myUser.id, true);
+    const { projects: newestProjects } = await getNewestProjects(myUser.id);
     const settlementBudgets = await getSettlementBudgets();
 
     const villageBudgetData = {

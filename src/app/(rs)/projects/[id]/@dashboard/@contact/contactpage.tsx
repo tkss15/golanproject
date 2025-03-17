@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DataTable } from "@/components/data-table";
 import { columns, Funding } from "./columns";
+import { Skeleton } from "@/components/ui/skeleton";
 
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { TableCell } from "@/components/ui/table";
@@ -31,6 +32,14 @@ export default function ProjectContact({project, fundings} : {project: any, fund
     const [contactEmail, setContactEmail] = useState(project.contact_email);
     const [contactPhone, setContactPhone] = useState(project.contact_phone);
 
+    const [isLoading, setIsLoading] = useState(false);
+    
+    // Initialize loading state on client-side only
+    useEffect(() => {
+        setIsLoading(false);
+    }, []);
+
+
     const updateProjectMutation = useMutation({
         mutationFn: async (data: { contact_email: string, contact_phone: string }) => {
             const response = await fetch(`/api/projects/${project.id}`, {
@@ -48,9 +57,16 @@ export default function ProjectContact({project, fundings} : {project: any, fund
     });
 
     const handleProjectEdit = () => {
+        setIsLoading(true);
         updateProjectMutation.mutate({ 
             contact_email: contactEmail, 
             contact_phone: contactPhone 
+        }, {
+            onSettled: () => {
+                setTimeout(() => {
+                    setIsLoading(false);
+                }, 500);
+            }
         });
     }
 
@@ -79,7 +95,24 @@ export default function ProjectContact({project, fundings} : {project: any, fund
     return (
         <OverviewLayout header={editing ? header : "מקורות מימון חיצוניים"}>
                 <>
-                    <DataTable label={'בחר מקור מימון'} columns={columns} data={fundings} setSelected={setSelected} setGlobalSerc={setContactEmail} GlobalSerc={selected}/>
+                    {isLoading ? (
+                        <div className="space-y-3">
+                            <Skeleton className="h-10 w-full" />
+                            <Skeleton className="h-24 w-full" />
+                            <div className="grid grid-cols-3 gap-4">
+                                <Skeleton className="h-8 w-full" />
+                                <Skeleton className="h-8 w-full" />
+                                <Skeleton className="h-8 w-full" />
+                            </div>
+                            <div className="grid grid-cols-3 gap-4 mt-2">
+                                <Skeleton className="h-8 w-full" />
+                                <Skeleton className="h-8 w-full" />
+                                <Skeleton className="h-8 w-full" />
+                            </div>
+                        </div>
+                    ) : (
+                        <DataTable label={'בחר מקור מימון'} columns={columns} data={fundings} setSelected={setSelected} setGlobalSerc={setContactEmail} GlobalSerc={selected}/>
+                    )}
                 </>
         </OverviewLayout>
     )
@@ -107,7 +140,15 @@ export function FundingDialog({projectId, fundingProcess}: {projectId: string | 
   });
 
   // Mutation to update fundings
-  const updateFundingsMutation = useMutation({
+  const [isDialogLoading, setIsDialogLoading] = useState(false);
+
+  // Initialize dialog loading state on client-side only
+  useEffect(() => {
+    setIsDialogLoading(false);
+  }, []);
+
+
+const updateFundingsMutation = useMutation({
     mutationFn: async (data: { fundings: FundingInProject[] }) => {
       if (!projectId) throw new Error('No project ID');
       // שליחת הנתונים ללא ה-ID
@@ -128,8 +169,15 @@ export function FundingDialog({projectId, fundingProcess}: {projectId: string | 
   });
 
   const handleSave = () => {
+    setIsDialogLoading(true);
     updateFundingsMutation.mutate({
       fundings: arrFundings
+    }, {
+      onSettled: () => {
+        setTimeout(() => {
+          setIsDialogLoading(false);
+        }, 500);
+      }
     });
   };
 
@@ -176,6 +224,13 @@ export function FundingDialog({projectId, fundingProcess}: {projectId: string | 
     );
   });
 
+  const [idSeed, setIdSeed] = useState("temp");
+
+  useEffect(() => {
+    // Generate UUID only on client side to avoid hydration mismatch
+    setIdSeed(uuidv4());
+  }, []);
+
   const addNewFunding = () => {
     const newFunding: FundingInProject = {
       project_id: parseInt(projectId),
@@ -183,10 +238,9 @@ export function FundingDialog({projectId, fundingProcess}: {projectId: string | 
       allocated_amount: 0,
       allocated_date: new Date(),
     };
-    const tempId = uuidv4();
-    setNewFundingAdded({ ...newFunding, id: tempId });
-    setArrFundings([...arrFundings, { ...newFunding, id: tempId }]);
-    setEditingId(tempId);
+    setNewFundingAdded({ ...newFunding, id: idSeed });
+    setArrFundings([...arrFundings, { ...newFunding, id: idSeed }]);
+    setEditingId(idSeed);
   };
 
   if (isLoading) return <div>Loading...</div>;
@@ -216,6 +270,13 @@ export function FundingDialog({projectId, fundingProcess}: {projectId: string | 
                 <div className="border rounded-md">
                   {/* This div controls the scrolling behavior */}
                   <div className="max-h-[150px] overflow-y-auto">
+                  {isDialogLoading ? (
+                    <div className="p-4 space-y-3">
+                      <Skeleton className="h-10 w-full" />
+                      <Skeleton className="h-10 w-full" />
+                      <Skeleton className="h-10 w-full" />
+                    </div>
+                  ) : (
                     <Table>
                       {/* We keep the header fixed by making it sticky */}
                       <TableHeader className="sticky top-0 bg-white z-10">
@@ -249,6 +310,7 @@ export function FundingDialog({projectId, fundingProcess}: {projectId: string | 
                         ))}
                       </TableBody>
                     </Table>
+                  )}
                   </div>
                 </div>
               </div>

@@ -4,18 +4,27 @@ import { useProject } from "@/components/ProjectContext";
 import { Button } from "@/components/ui/button";
 import { Check, X, Pencil, Info } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea"
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/useToast";
+import { Skeleton } from "@/components/ui/skeleton";
 export default function ProjectContent({project} : {project: any}) {
     const router = useRouter();
     const {editMode, setEditMode, editing} = useProject();
     const [description, setDescription] = useState(project.description);
+    const [isLoading, setIsLoading] = useState(false);
+
+    // Initialize loading state on client-side only
+    useEffect(() => {
+        setIsLoading(false);
+    }, []);
+    
     const toast = useToast();
     const handleCancelProjectEdit = () => {
         setEditMode(null);
     }
     const handleProjectEdit = async () => {
+        setIsLoading(true);
         try {
             await fetch(`/api/projects/${project.id}`, {
                 method: 'PATCH',
@@ -26,6 +35,10 @@ export default function ProjectContent({project} : {project: any}) {
             router.refresh();
         } catch (error) {
             toast.error('שגיאה בעדכון תיאור הפרויקט', 'שגיאה בעדכון תיאור הפרויקט', 3000);
+        } finally {
+            setTimeout(() => {
+                setIsLoading(false);
+            }, 500);
         }
     }
     const headerContent = (
@@ -60,7 +73,11 @@ export default function ProjectContent({project} : {project: any}) {
     return (
         <OverviewLayout header={editing ? header : headerContent}>
            {
-            editMode === 'content' ? (
+            isLoading ? (
+                <div className="space-y-3">
+                    <Skeleton className="h-32 w-full" />
+                </div>
+            ) : editMode === 'content' ? (
                 <div className="flex flex-col gap-1 w-full justify-evenly">
                      <Textarea onChange={(e) => setDescription(e.target.value)} value={description} placeholder="Type your message here." />
                 </div>

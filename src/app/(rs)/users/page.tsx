@@ -3,7 +3,9 @@ import { getAllUsers } from "@/lib/queries/users/getAllUsers";
 import UsersTable from "./userstable";
 import {getKindeServerSession} from "@kinde-oss/kinde-auth-nextjs/server";
 import Loading from "@/app/loading";
+import { getUserByKindId } from "@/lib/queries/users/getUser";
 import { Suspense } from "react";
+import { redirect } from "next/navigation";
 type PropUser = {
   id: string;
   email: string;
@@ -36,19 +38,49 @@ export default async function Userspage() {
   );
 }
 async function getPermissions() {
-  const {getPermissions, getUser} = getKindeServerSession();
-  const permissionsResult = await getPermissions();
-  const permissions = permissionsResult ? permissionsResult.permissions : null;
+  const { getUser } = getKindeServerSession();
   const userResult = await getUser();
-  const {id} = userResult ? userResult : { id: null };
-  return {permissions, id};
+  
+  // If no user is authenticated, redirect to login
+  if (!userResult) {
+    redirect('/api/auth/login');
+  }
+
+  try {
+    const user = await getUserByKindId(userResult.id);
+    
+    // If user not found in database, default to 'user' role
+    const role = user?.role ?? 'user';
+    
+    return { 
+      role: role, 
+      id: userResult.id 
+    };
+  } catch (error) {
+    console.error('Error fetching user permissions:', error);
+    
+    // Fallback to default permissions
+    return { 
+      role: 'user', 
+      id: userResult.id 
+    };
+  }
 }
 async function FetchUsers() {
-  const {permissions, id} = await getPermissions();
-  const users = await getAllUsers();
+  const {role, id} = await getPermissions();
   
-  return <>
-    <h2>רשימת משתמשים</h2>
-    <UsersTable users={users} id={id ?? ""} permissions={permissions ?? []} />
-  </>
+  // Optional: Add role-based access control
+  if (role !== 'admin') {
+    redirect('/dashboard');
+  }
+
+  const users = await getAllUsers();
+  return    <>
+  <h2>רשימת משתמשים</h2>
+  <UsersTable 
+    users={users} 
+    id={id ?? ""} 
+    role={role ?? 'user'} 
+  />
+</>
 }

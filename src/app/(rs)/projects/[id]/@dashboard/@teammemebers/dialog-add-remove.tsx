@@ -11,11 +11,13 @@ import { DialogFooter } from "@/components/ui/dialog"
 import { UserAvatar } from "@/components/user/UserAvatar"
 import { InvitedUser } from "@/zod-schemas/users"
 import { useParams } from "next/navigation";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function NewMessageDialog({project_users}: {project_users: InvitedUser[]}) {
   const {id} = useParams();
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
   const [selectedUsers, setSelectedUsers] = useState<InvitedUser[]>(project_users)
 
   const handleUserSelection = (user: User) => {
@@ -42,18 +44,27 @@ export default function NewMessageDialog({project_users}: {project_users: Invite
 
 
   const handleContinue = async() => {
+    setIsLoading(true);
     // Implement the continue logic here
-    const response = await fetch(`/api/projects/${id}/editors`, {
-      method: 'POST',
-      body: JSON.stringify(selectedUsers)
-    })
-    if(response.ok) {
-      console.log('Users added successfully')
-    } else {
-      console.error('Failed to add users')
+    try {
+      const response = await fetch(`/api/projects/${id}/editors`, {
+        method: 'POST',
+        body: JSON.stringify(selectedUsers)
+      })
+      if(response.ok) {
+        console.log('Users added successfully')
+      } else {
+        console.error('Failed to add users')
+      }
+      console.log('Continuing with selected users:', selectedUsers)
+    } catch (error) {
+      console.error('Error adding users:', error)
+    } finally {
+      setTimeout(() => {
+        setIsLoading(false);
+        setOpen(false);
+      }, 500);
     }
-    console.log('Continuing with selected users:', selectedUsers)
-    setOpen(false)
   }
 
 
@@ -81,13 +92,23 @@ export default function NewMessageDialog({project_users}: {project_users: Invite
 
           />
           
-          <Suspense fallback={<UserListSkeleton />}>
-            <UserList
-              search={search}
-              selectedUsers={selectedUsers}
-              onUserSelect={handleUserSelection}
-            />
-          </Suspense>
+          {isLoading ? (
+            <div className="space-y-2">
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+          ) : (
+            <Suspense fallback={<UserListSkeleton />}>
+              <UserList
+                search={search}
+                selectedUsers={selectedUsers}
+                onUserSelect={handleUserSelection}
+              />
+            </Suspense>
+          )}
           
           <DialogFooter>
             <div className="flex flex-col gap-2">
@@ -100,10 +121,10 @@ export default function NewMessageDialog({project_users}: {project_users: Invite
               )}
               <Button
                 variant="secondary"
-                disabled={selectedUsers.length === 0}
+                disabled={selectedUsers.length === 0 || isLoading}
                 onClick={handleContinue}
               >
-                המשך ({selectedUsers.length})
+                {isLoading ? 'טוען...' : `המשך (${selectedUsers.length})`}
               </Button>
 
             </div>

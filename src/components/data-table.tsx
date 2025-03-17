@@ -168,24 +168,102 @@ export function DataTable<TData, TValue>({
         /> */}
       </div>
     <div className="mobile-table block md:hidden">
-          <article className="flex flex-col gap-2">
-            {table.getRowModel().rows.map((row) => (
-              <div key={row.id} className="border border-block rounded-md p-2 grid ">
-                {/* {row.getVisibleCells().map(cell => (
-                  <p key={cell.id}>{cell.column.id}</p>
-                ))} */}
-                {row.getVisibleCells().map((cell) => (
-                  cell.column.columnDef.meta?.hidden ? (null) : (
-                    <div key={cell.id} className={cell.column.id === 'actions' ? 'flex justify-end -order-1' : ''}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </div>
-                  )
-                ))}
+          <article className="flex flex-col gap-3">
+            {table.getRowModel().rows.length ? (
+              table.getRowModel().rows.map((row) => (
+                <div key={row.id} className="border border-block rounded-md p-3 grid gap-2 bg-card shadow-sm">
+                  {row.getVisibleCells().map((cell) => (
+                    cell.column.columnDef.meta?.hidden ? (null) : (
+                      <div key={cell.id} className={`${cell.column.id === 'actions' ? 'flex justify-end -order-1' : 'flex flex-row gap-2 items-center'}`}>
+                        {/* Show column header name in mobile */}
+                        {/* {cell.column.id !== 'actions' && (
+                          <span className="text-xs font-medium text-muted-foreground">
+                            {cell.column.columnDef.header ? (
+                              typeof cell.column.columnDef.header === 'string' 
+                                ? cell.column.columnDef.header 
+                                : cell.column.id
+                            ) : cell.column.id}
+                          </span>
+                        )} */}
+                        <div className={`${cell.column.id === 'actions' ? '' : 'flex-1'}`}>
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </div>
+                      </div>
+                    )
+                  ))}
+                </div>
+              ))
+            ) : (
+              <div className="border border-dashed rounded-md p-6 text-center">
+                <p className="text-muted-foreground">אין תוצאות</p>
               </div>
-            ))}
+            )}
           </article>
+          
+          <div className="flex flex-col space-y-3 py-4 mt-2">
+            <div className="flex justify-between items-center">
+              <div className="flex items-center space-x-2 rtl:space-x-reverse">
+                <span className="text-sm text-muted-foreground">שורות בעמוד:</span>
+                <select
+                  value={table.getState().pagination.pageSize}
+                  onChange={e => {
+                    table.setPageSize(Number(e.target.value))
+                  }}
+                  className="h-8 w-16 rounded-md border border-input bg-transparent text-sm">
+                  {[8, 16, 24, 32].map(pageSize => (
+                    <option key={pageSize} value={pageSize}>
+                      {pageSize}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <span className="text-sm">
+                <strong>{table.getState().pagination.pageIndex + 1}</strong> / <strong>{table.getPageCount()}</strong>
+              </span>
+            </div>
+            
+            <div className="grid grid-cols-4 gap-1">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-9 text-xs"
+                onClick={() => table.setPageIndex(0)}
+                disabled={!table.getCanPreviousPage()}
+              >
+                ראשון
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-9 text-xs"
+                onClick={() => table.previousPage()}
+                disabled={!table.getCanPreviousPage()}
+              >
+                הקודם
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-9 text-xs"
+                onClick={() => table.nextPage()}
+                disabled={!table.getCanNextPage()}
+              >
+                המשך
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-9 text-xs"
+                onClick={() => table.setPageIndex(table.getPageCount() - 1)}
+                disabled={!table.getCanNextPage()}
+              >
+                אחרון
+              </Button>
+            </div>
+          </div>
     </div>
-    <div className="rounded-md border">
+    <div className="rounded-md border hidden md:block">
       <Table>
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
@@ -228,25 +306,64 @@ export function DataTable<TData, TValue>({
           )}
         </TableBody>
       </Table>
-      <div className="flex flex-col sm:flex-row items-center justify-between sm:justify-end space-y-2 sm:space-y-0 sm:space-x-2 py-4 rtl:space-x-reverse">
-        <div className="flex w-full sm:w-auto justify-between sm:justify-end space-x-2 rtl:space-x-reverse">
+      <div className="flex items-center justify-between py-4">
+        <div className="flex items-center space-x-2 rtl:space-x-reverse">
+          <span className="text-sm text-muted-foreground">שורות בעמוד:</span>
+          <select
+            value={table.getState().pagination.pageSize}
+            onChange={e => {
+              table.setPageSize(Number(e.target.value))
+            }}
+            className="h-8 w-16 rounded-md border border-input bg-transparent text-sm">
+            {[8, 16, 24, 32].map(pageSize => (
+              <option key={pageSize} value={pageSize}>
+                {pageSize}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="flex items-center space-x-2 rtl:space-x-reverse">
           <Button
             variant="outline"
             size="sm"
-            className="px-3 py-2 text-sm min-w-20"
+            className="h-8 w-8 p-0"
+            onClick={() => table.setPageIndex(0)}
+            disabled={!table.getCanPreviousPage()}
+          >
+            <span className="sr-only">עמוד ראשון</span>
+            <span>«</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="px-3 py-2 text-sm"
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
           >
             הקודם
           </Button>
+          <span className="flex items-center gap-1 text-sm">
+            עמוד <strong>{table.getState().pagination.pageIndex + 1}</strong> מתוך <strong>{table.getPageCount()}</strong>
+          </span>
           <Button
             variant="outline"
             size="sm"
-            className="px-3 py-2 text-sm min-w-20"
+            className="px-3 py-2 text-sm"
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}
           >
             המשך
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 w-8 p-0"
+            onClick={() => table.setPageIndex(table.getPageCount() - 1)}
+            disabled={!table.getCanNextPage()}
+          >
+            <span className="sr-only">עמוד אחרון</span>
+            <span>»</span>
           </Button>
         </div>
       </div>

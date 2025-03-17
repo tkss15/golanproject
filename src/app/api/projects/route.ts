@@ -27,7 +27,6 @@ export async function POST(request: NextRequest) {
   const {getUser} = await getKindeServerSession();
   const user = await getUser();
   const userKinde = await getUserByKindId(user.id);
-  console.log(project, editors, settlement);
 
   const projectToCreate = {
     project_name: project.project_name,

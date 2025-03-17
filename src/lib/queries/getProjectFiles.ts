@@ -15,6 +15,7 @@ export async function getFilesByProject(project_id: string, tx?: any) {
 
     const projectsArr = await (tx || db)
         .select({
+            id: projectFiles.id,
             file_name: projectFiles.file_name,
             file_size: projectFiles.file_size,
             file_path: projectFiles.file_path,

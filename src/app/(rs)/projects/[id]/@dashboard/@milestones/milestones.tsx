@@ -4,7 +4,7 @@ import OverviewLayout from "../OverviewLayout";
 import { Button } from "@/components/ui/button";
 import { Check, Circle, CheckCircle2, Pencil, PlayCircle, X } from "lucide-react";
 import { format, formatDistance } from "date-fns";
-import {  useState } from "react"
+import {  useEffect, useState } from "react"
 import { Calendar } from "@/components/ui/calendar"
 import { DatePickerDemo } from "@/components/date-picker";
 import {
@@ -24,6 +24,33 @@ import { he } from 'date-fns/locale/he'
 import { useParams } from "next/navigation";
 import { useRouter } from "next/navigation";
 import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
+
+// Client-side only formatting to avoid hydration mismatch
+function ClientSideDate({ date }: { date: Date | string | null }) {
+  const [formattedDate, setFormattedDate] = useState<string>("");
+  
+  useEffect(() => {
+    if (date) {
+      setFormattedDate(format(new Date(date), "dd/MM/yyyy"));
+    }
+  }, [date]);
+  
+  return <span>{formattedDate}</span>;
+}
+
+// Client-side only distance calculation
+function ClientSideDistance({ start, end }: { start: Date | string | null, end: Date | string | null }) {
+  const [distance, setDistance] = useState<string>("");
+  
+  useEffect(() => {
+    if (start && end) {
+      setDistance(formatDistance(new Date(end), new Date(start), {locale: he}));
+    }
+  }, [start, end]);
+  
+  return <span>{distance}</span>;
+}
 
 type Status = "planned" | "in-progress" | "completed"
 interface Milestone {
@@ -41,12 +68,21 @@ export default function Milestones({startDate, endDate, milestones}: {startDate:
     const [progress, setProgress] = useState(33);
     const [projectStartDate, setProjectStartDate] = useState<Date | null>(startDate ?? new Date());
     const [projectEndDate, setProjectEndDate] = useState<Date | null>(endDate ?? new Date());
+    const [isLoading, setIsLoading] = useState(false);
+
+    // Initialize loading state on client-side only
+    useEffect(() => {
+        setIsLoading(false);
+    }, []);
+    
     const handleProjectEdit = async () => {
+      setIsLoading(true);
       const startEditDate = new Date(projectStartDate as string);
       const endEditDate = new Date(projectEndDate as string);
       if(startDate?.getDay() === startEditDate.getDay() && endDate?.getDay() === endEditDate.getDay() && 
       startDate?.getMonth() === startEditDate.getMonth() && endDate?.getMonth() === endEditDate.getMonth() && 
       startDate?.getFullYear() === startEditDate.getFullYear() && endDate?.getFullYear() === endEditDate.getFullYear()) {
+        setIsLoading(false);
         return;
       }
       
@@ -68,6 +104,10 @@ export default function Milestones({startDate, endDate, milestones}: {startDate:
 
       } catch (error) {
           console.error(error)
+        } finally {
+          setTimeout(() => {
+            setIsLoading(false);
+          }, 500);
         }
       setEditMode(null);
     }
@@ -77,11 +117,18 @@ export default function Milestones({startDate, endDate, milestones}: {startDate:
       setEditMode(null);
     }
     const milestoneProg = {
-        total_milestones: milestones.length,
-        completed: milestones.filter(milestone => milestone.status === 'completed').length,
-        in_progress: milestones.filter(milestone => milestone.status === 'in-progress').length,
-        not_started: milestones.filter(milestone => milestone.status !== 'completed' && milestone.status !== 'in-progress').length,
+      total_milestones: milestones.length,
+      completed: milestones.filter(milestone => milestone.status === 'completed').length,
+      in_progress: milestones.filter(milestone => milestone.status === 'in-progress').length,
+      not_started: milestones.filter(milestone => milestone.status !== 'completed' && milestone.status !== 'in-progress').length,
+    }
+    useEffect(() => {
+      // Calculate progress on client-side only to avoid hydration mismatch
+      if (milestoneProg.total_milestones > 0) {
+        setProgress(milestoneProg.completed / milestoneProg.total_milestones * 100)
       }
+    }, [milestoneProg])
+
     const header = (
         <div className="flex justify-between w-full">
             <p>ציר זמן ואבני דרך</p>
@@ -108,7 +155,27 @@ export default function Milestones({startDate, endDate, milestones}: {startDate:
     return (
         <OverviewLayout header={editing ? header : "ציר זמן ואבני דרך"}>
             {
-                editMode === 'milestones' ? (
+                isLoading ? (
+                  <div className="space-y-6">
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <Skeleton className="h-24 rounded-lg" />
+                      <Skeleton className="h-24 rounded-lg" />
+                    </div>
+                    <div className="space-y-4">
+                      <div className="flex justify-between">
+                        <Skeleton className="h-4 w-32" />
+                        <Skeleton className="h-4 w-10" />
+                      </div>
+                      <Skeleton className="h-2 w-full" />
+                      <Skeleton className="h-4 w-48" />
+                    </div>
+                    <div className="grid gap-3 md:grid-cols-3">
+                      <Skeleton className="h-20 rounded-lg" />
+                      <Skeleton className="h-20 rounded-lg" />
+                      <Skeleton className="h-20 rounded-lg" />
+                    </div>
+                  </div>
+                ) : editMode === 'milestones' ? (
                   <div className="space-y-6">
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="p-4 bg-slate-50 rounded-lg">
@@ -124,7 +191,7 @@ export default function Milestones({startDate, endDate, milestones}: {startDate:
                   <div className="space-y-4">
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-muted-foreground">התקדמות כללית</span>
-                      <span className="font-medium">{progress}%</span>
+                      <span className="font-medium">{progress.toFixed(1)}%</span>
                     </div>
                     <Progress value={progress} className="h-2" />
                     {startDate && endDate && (
@@ -156,19 +223,6 @@ export default function Milestones({startDate, endDate, milestones}: {startDate:
                     </div>
                   </div>
                 </div>                  
-                    // <div className="flex flex-col gap-1 w-full justify-evenly">
-                    //     <p>תאריך התחלת פרוייקט:</p>
-                    //     <DatePickerDemo userdate={projectStartDate} onChange={setProjectStartDate} />
-                    //     <p>תאריך סיום פרוייקט:</p>
-                    //     <DatePickerDemo userdate={projectEndDate} onChange={setProjectEndDate} />
-                    //     <div className='flex flex-col w-full mt-2 mb-auto'>
-                    //         <p>לפרויקט זה נקבעו {milestoneProg.total_milestones} אבני דרך</p>
-                    //         <p> <span className={`inline-block w-2 h-2 rounded-full ${getStatusColor('completed')}`} /> מתוכם {milestoneProg.completed} נסגרו</p>
-                    //         <p> <span className={`inline-block w-2 h-2 rounded-full ${getStatusColor('in_progress')}`} /> מתוכם {milestoneProg.in_progress} בתהליך</p>
-                    //         <p> <span className={`inline-block w-2 h-2 rounded-full ${getStatusColor('not_started')}`} /> מתוכם {milestoneProg.not_started} לא התחילו</p>
-                    //     </div>
-                    //     <MilestoneDialog milestoneProgress={milestones} projectId={projectId} />
-                    // </div> 
                 ) : (
                     <>     
                       <div className="space-y-6">
@@ -176,13 +230,13 @@ export default function Milestones({startDate, endDate, milestones}: {startDate:
                           {startDate && 
                           <div className="p-4 bg-slate-50 rounded-lg">
                             <div className="text-sm text-muted-foreground mb-1">תאריך התחלה</div>
-                            <div className="font-medium">{format(startDate, 'dd/MM/yyyy')}</div>
+                          <div className="font-medium"><ClientSideDate date={startDate} /></div>
                           </div>
                           }
                           {endDate && 
                           <div className="p-4 bg-slate-50 rounded-lg">
                             <div className="text-sm text-muted-foreground mb-1">תאריך סיום</div>
-                            <div className="font-medium">{format(endDate, 'dd/MM/yyyy')}</div>
+                          <div className="font-medium"><ClientSideDate date={endDate} /></div>
                           </div>
                           }
                         </div>
@@ -190,11 +244,11 @@ export default function Milestones({startDate, endDate, milestones}: {startDate:
                         <div className="space-y-4">
                           <div className="flex items-center justify-between text-sm">
                             <span className="text-muted-foreground">התקדמות כללית</span>
-                            <span className="font-medium">{progress}%</span>
+                            <span className="font-medium">{progress.toFixed(0)}%</span>
                           </div>
                           <Progress value={progress} className="h-2" />
                           {startDate && endDate && (
-                            <div className="text-sm text-muted-foreground">זמן תקופת הפרוייקט: {formatDistance(endDate, startDate, {locale: he })}</div>
+                            <div className="text-sm text-muted-foreground">זמן תקופת הפרוייקט: <ClientSideDistance start={startDate} end={endDate} /></div>
                           )}
                         </div>
 
@@ -222,25 +276,6 @@ export default function Milestones({startDate, endDate, milestones}: {startDate:
                           </div>
                         </div>
                       </div>
-                    {/* <div className="flex flex-col justify-between w-full gap-5">
-                        <div className="flex flex-col justify-between w-full ">
-                            {startDate && 
-                                (<p>תאריך התחלת פרוייקט: {format(startDate, 'dd/MM/yyyy')}</p>)
-                                }
-                            {endDate && 
-                                    (<p>תאריך סיום פרוייקט: {format(endDate, 'dd/MM/yyyy')}</p>)
-                                }
-                              {endDate && startDate && (
-                                <p>זמן תקופת הפרוייקט: {formatDistance(endDate, startDate, {locale: he })}</p>
-                              ) }
-                        </div>
-                        <div className='flex flex-col w-full'>
-                            <p>לפרויקט זה נקבעו {milestoneProg.total_milestones} אבני דרך</p>
-                            <p> <span className={`inline-block w-2 h-2 rounded-full ${getStatusColor('completed')}`} /> מתוכם {milestoneProg.completed} נסגרו</p>
-                            <p> <span className={`inline-block w-2 h-2 rounded-full ${getStatusColor('in_progress')}`} /> מתוכם {milestoneProg.in_progress} בתהליך</p>
-                            <p> <span className={`inline-block w-2 h-2 rounded-full ${getStatusColor('not_started')}`} /> מתוכם {milestoneProg.not_started} לא התחילו</p>
-                        </div>
-                    </div> */}
                     </>
                 )
             }
@@ -248,24 +283,19 @@ export default function Milestones({startDate, endDate, milestones}: {startDate:
     )
 }
 
-function getStatusColor(status: string) {
-  switch (status) {
-    case "completed":
-      return "bg-green-500"
-    case "in_progress":
-      return "bg-blue-500"
-    case "not_started":
-      return "bg-gray-500"
-  }
-}
-
-
 export function MilestoneDialog({milestoneProgress, projectId}: {milestoneProgress: any, projectId: string | null}) {
   const [milestones, setMilestones] = useState<Milestone[]>(milestoneProgress)
   const [newMilestoneAdded, setNewMilestoneAdded] = useState<Milestone | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [isDialogLoading, setIsDialogLoading] = useState(false)
   const router = useRouter();
+
+  // Initialize dialog and loading states on client-side only
+  useEffect(() => {
+    setIsDialogLoading(false);
+    setIsDialogOpen(false);
+  }, []);
 
   const editingMilestone = editingId ? milestones.find(m => m.id === editingId) || null : null
 
@@ -303,6 +333,7 @@ export function MilestoneDialog({milestoneProgress, projectId}: {milestoneProgre
    }
   const handleSave = async () => {
     if(!projectId) return;
+    setIsDialogLoading(true);
 
     const body = {
       milestones: {
@@ -320,9 +351,13 @@ export function MilestoneDialog({milestoneProgress, projectId}: {milestoneProgre
 
     } catch (error) {
       console.error(error)
+    } finally {
+      setTimeout(() => {
+        setIsDialogLoading(false);
+        setEditingId(null);
+        setIsDialogOpen(false);
+      }, 500);
     }
-    setEditingId(null)
-    setIsDialogOpen(false)
   }
   const handleCancelNewMilestone = () => {
     setNewMilestoneAdded(null)
@@ -333,9 +368,16 @@ export function MilestoneDialog({milestoneProgress, projectId}: {milestoneProgre
     setMilestones(milestones.filter((m) => m.id !== id))
   }
 
+  const [idSeed, setIdSeed] = useState("initial");
+  
+  useEffect(() => {
+    // Only run on client side to avoid hydration mismatch
+    setIdSeed(String(Date.now()));
+  }, []);
+
   const addNewMilestone = () => {
     const newMilestone: Milestone = {
-      id: String(Date.now()),
+      id: idSeed + "-" + String(Math.random()).substring(2, 8),
       title: "אבן דרך חדשה",
       description: "",
       due_date: new Date(),
@@ -366,40 +408,48 @@ export function MilestoneDialog({milestoneProgress, projectId}: {milestoneProgre
               הוסף אבן דרך
             </Button>
             <div className="h-[150px] overflow-auto flex-1 border rounded-md">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="sticky top-0 bg-background text-right">סטטוס</TableHead>
-                    <TableHead className="sticky top-0 bg-background text-right">שם</TableHead>
-                    <TableHead className="sticky top-0 bg-background text-right">תאריך</TableHead>
-                    <TableHead className="sticky top-0 bg-background text-right">פעולות</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {milestones.map((milestone) => (
-                    <TableRow key={milestone.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <div className={`w-3 h-3 rounded-full ${getStatusColor(milestone.status)}`} />
-                          <span>{getStatusText(milestone.status)}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>{milestone.title}</TableCell>
-                      <TableCell>{format(new Date(milestone.due_date), "dd/MM/yyyy")}</TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Button variant="ghost" size="sm" onClick={() => setEditingId(milestone.id)}>
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="sm" onClick={() => handleDelete(milestone.id)}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
+              {isDialogLoading ? (
+                <div className="p-4 space-y-3">
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-10 w-full" />
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="sticky top-0 bg-background text-right">סטטוס</TableHead>
+                      <TableHead className="sticky top-0 bg-background text-right">שם</TableHead>
+                      <TableHead className="sticky top-0 bg-background text-right">תאריך</TableHead>
+                      <TableHead className="sticky top-0 bg-background text-right">פעולות</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {milestones.map((milestone) => (
+                      <TableRow key={milestone.id}>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <div className={`w-3 h-3 rounded-full ${getStatusColor(milestone.status)}`} />
+                            <span>{getStatusText(milestone.status)}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>{milestone.title}</TableCell>
+                        <TableCell><ClientSideDate date={milestone.due_date} /></TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button variant="ghost" size="sm" onClick={() => setEditingId(milestone.id)}>
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="sm" onClick={() => handleDelete(milestone.id)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>)}
             </div>
           </div>
           {editingMilestone && (
@@ -422,7 +472,7 @@ export function MilestoneDialog({milestoneProgress, projectId}: {milestoneProgre
                     <PopoverTrigger asChild>
                       <Button variant="outline" className="w-full justify-start text-right">
                         <CalendarIcon className="ml-2 h-4 w-4" />
-                        {format(new Date(editingMilestone.due_date), "dd/MM/yyyy")}
+                        <ClientSideDate date={editingMilestone.due_date} />
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">

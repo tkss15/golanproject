@@ -4,10 +4,18 @@ import NewMessageDialog from "./dialog-add-remove";
 import OverviewLayout from "../OverviewLayout";
 import { InvitedUser } from "@/zod-schemas/users";
 import { useProject } from "@/components/ProjectContext";
+import { useEffect, useState } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function TeamMembersPage({project_users}: {project_users: InvitedUser[]}) {
     // if (!searchParams.project_id) return null  
     const {editMode, setEditMode, editing} = useProject();
+    const [isLoading, setIsLoading] = useState(false);
+    // Use useEffect to handle loading state on client-side only
+    useEffect(() => {
+      // Initial mount with no loading
+      setIsLoading(false);
+    }, []);
     const header = (
       <div className="flex justify-between w-full">
         <p>חברי צוות</p>
@@ -16,25 +24,34 @@ export default function TeamMembersPage({project_users}: {project_users: Invited
     )
     return (
         <OverviewLayout header={editing ? header : "חברי צוות"}>
-          <div className="flex flex-wrap gap-4">
-            {project_users.length === 0 && <p>לא נמצאו חברי צוות</p>}
-            {project_users.map((name, index) => (
-
-              <div key={index} className="flex items-center">
-                <Avatar className="h-8 w-8 ml-2">
-                  <AvatarImage src={`/placeholder.svg`} />
-                  {name.user?.first_name && name.user?.last_name &&
-                  <AvatarFallback>{name.user?.first_name?.charAt(0) + name.user?.last_name?.charAt(0)}</AvatarFallback>
-                  }
-                </Avatar>
-
-                <div>
-                  <p className="text-sm font-medium">{name.user?.first_name} {name.user?.last_name}</p>
-                  {/* <p className="text-xs text-gray-500">תפקיד</p> */}
-                </div>
+          {isLoading ? (
+            <div className="space-y-3">
+              <div className="flex flex-wrap gap-4">
+                <Skeleton className="h-12 w-32 rounded-md" />
+                <Skeleton className="h-12 w-32 rounded-md" />
+                <Skeleton className="h-12 w-32 rounded-md" />
+                <Skeleton className="h-12 w-32 rounded-md" />
               </div>
-            ))}
-          </div>
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-4">
+              {project_users.length === 0 && <p>לא נמצאו חברי צוות</p>}
+              {project_users.map((name, index) => (
+                <div key={index} className="flex items-center">
+                  <Avatar className="h-8 w-8 ml-2">
+                    <AvatarImage src={`/placeholder.svg`} />
+                    {name.user?.first_name && name.user?.last_name &&
+                    <AvatarFallback>{name.user?.first_name?.charAt(0) + name.user?.last_name?.charAt(0)}</AvatarFallback>
+                    }
+                  </Avatar>
+                  <div>
+                    <p className="text-sm font-medium">{name.user?.first_name} {name.user?.last_name}</p>
+                    {/* <p className="text-xs text-gray-500">תפקיד</p> */}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </OverviewLayout>
     )
 }

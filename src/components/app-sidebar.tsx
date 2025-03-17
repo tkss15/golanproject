@@ -1,4 +1,4 @@
-import { LayoutDashboard, FolderKanban, Users, DollarSign, Settings, LogOut, Building2 } from 'lucide-react'
+import { LayoutDashboard, FolderKanban, Users, DollarSign, Settings, LogOut, Building2, Briefcase } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
   Sidebar,
@@ -30,6 +30,11 @@ const items = [
     icon: FolderKanban ,
   },
   {
+    title: "מחלקות",
+    url: "/departments",
+    icon: Briefcase ,
+  },
+  {
     title: "משתמשים",
     url: "/users",
     icon: Users  ,
@@ -50,8 +55,8 @@ export async function  AppSidebar() {
   const {getUser} = getKindeServerSession();
   const user = await getUser();
   return (
-    <Sidebar side="right">
-      <SidebarContent>
+    <Sidebar side="right" >
+      <SidebarContent data-tg-tour='side bar' data-tg-order='1'>
         <SidebarGroup>
         <SidebarHeader className="flex flex-row items-center justify-between gap-4 w-full px-4 rtl:flex-row">
           <h2 className="text-2xl font-bold text-blue-900 order-2 rtl:order-1">מערכת פתרו"ן</h2>
@@ -90,7 +95,6 @@ export async function  AppSidebar() {
                     <AvatarFallback>{user.given_name}</AvatarFallback>
                   </Avatar>
                   <p>{user.given_name + " " + user.family_name}</p>
-                  
                   <Button variant={'ghost'} size={'icon'} aria-label="Logout" title="Logout" className="rounded-full mr-auto" asChild>
                         <LogoutLink>
                             <LogOut/>
