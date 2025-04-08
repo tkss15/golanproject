@@ -2,6 +2,7 @@ import { getAllDepartmentsWithCount } from "@/lib/queries/getAllDepartments";
 import { Suspense } from "react";
 import { getMyProjects } from "@/lib/queries/getProjectsByDepartment";
 import { getAllFundingSources } from "@/lib/queries/getFundingSources";
+import { getAllSettlements } from "@/lib/queries/getAllSettlements";
 import Loading from "@/app/loading";
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 import { getUserByKindId } from "@/lib/queries/users/getUser";
@@ -76,7 +77,7 @@ async function ProjectsContent({
   const endDate = end_date ?? undefined;
   
   // Fetch required data in parallel
-  const [projects, departments, fundingSources] = await Promise.all([
+  const [projects, departments, fundingSources, allSettlements] = await Promise.all([
     getMyProjects(
       pageSize,
       (pageNumber - 1) * pageSize,
@@ -87,7 +88,8 @@ async function ProjectsContent({
       user.role === 'admin'
     ),
     getAllDepartmentsWithCount(),
-    getAllFundingSources()
+    getAllFundingSources(),
+    getAllSettlements()
   ]);
   
   // If projects can't be loaded, display a friendly message
@@ -111,6 +113,7 @@ async function ProjectsContent({
       count={projects.count}
       start_date={startDate}
       end_date={endDate}
+      settlements={allSettlements || []}
     />
   );
 }
