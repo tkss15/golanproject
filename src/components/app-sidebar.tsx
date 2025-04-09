@@ -49,6 +49,11 @@ const items = [
     url: "/cities",
     icon: Building2   ,
   },
+  {
+    title: "מנהלי פרוייקט", 
+    url: "/externalmanagers",
+    icon: Users,
+  },
 ]
 
 export async function  AppSidebar() {

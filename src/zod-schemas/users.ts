@@ -12,5 +12,6 @@ export interface User {
   export interface InvitedUser  {
     user: User,
     joined_date: Date,
-    added_by: Pick<User, 'id'>
+    added_by: Pick<User, 'id'>,
+    role?: string // 'editor' or 'viewer'
   }

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { format } from "date-fns"
 import { he } from "date-fns/locale"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -9,8 +9,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { User } from "@/zod-schemas/users"
-import { ArrowRight, FileText, CheckCircle, Calendar, Tag, DollarSign, Mail, Phone, MapPin } from "lucide-react"
-
+import { ArrowRight, FileText, CheckCircle, Calendar, Tag, DollarSign, Mail, Phone, MapPin, MessageSquare } from "lucide-react"
+import { usePolling } from "@/hooks/usePolling"
+import { AddNote } from "./AddNote"
 interface LogType {
   log: ActivityLog
   user: User
@@ -57,12 +58,7 @@ function getPriorityText(priority: string) {
 }
 
 function ActivityDetails({ activity }: { activity: ActivityLog }) {
-  // Debug the activity data
-  console.log("Rendering ActivityDetails for:", activity.action_type);
-  console.log("Previous state:", activity.previous_state);
-  console.log("New state:", activity.new_state);
-  console.log("Metadata:", activity.metadata);
-  // Choose an icon based on activity type
+
   const getActivityIcon = () => {
     switch (activity.action_type) {
       case "עדכון_פרטים":
@@ -73,6 +69,8 @@ function ActivityDetails({ activity }: { activity: ActivityLog }) {
         return <DollarSign className="h-5 w-5 text-yellow-500" />;
       case "העלאת_קובץ":
         return <FileText className="h-5 w-5 text-purple-500" />;
+      case "טקסט_חופשי":
+        return <MessageSquare className="h-5 w-5 text-teal-500" />;
       default:
         return <CheckCircle className="h-5 w-5 text-gray-500" />;
     }
@@ -404,6 +402,41 @@ function ActivityDetails({ activity }: { activity: ActivityLog }) {
       </div>
     );
   }
+
+  if (activity.action_type === "טקסט_חופשי") {
+    return (
+      <div className="bg-teal-50 rounded-lg p-4">
+        <div className="flex items-center gap-2 mb-4">
+          {getActivityIcon()}
+          <h4 className="font-medium text-teal-700">הערה</h4>
+        </div>
+        
+        <div className="bg-white p-4 rounded-md border border-teal-100 mb-4">
+          <div className="prose max-w-none text-teal-700">
+            {activity.metadata?.text ? (
+              <div>
+                {activity.metadata.text.split('\n').map((line: string, i: number) => (
+                  <p key={i} className="my-2">{line}</p>
+                ))}
+              </div>
+            ) : (
+              <p>אין תוכן להצגה</p>
+            )}
+          </div>
+        </div>
+        
+        {activity.metadata?.tags && activity.metadata.tags.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {activity.metadata.tags.map((tag: string, i: number) => (
+              <Badge key={i} className="bg-teal-100 text-teal-700 hover:bg-teal-100">
+                {tag}
+              </Badge>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
   
   // Default case
   return (
@@ -418,21 +451,26 @@ function ActivityDetails({ activity }: { activity: ActivityLog }) {
   );
 }
 
-export function ActivityLog({ logs }: { logs: LogType[] }) {
+export function ActivityLog({ logs, project_id }: { logs: LogType[], project_id: number }) {
   const [displayedActivities, setDisplayedActivities] = useState(logs)
-  console.log("Received logs:", logs);
-  
-  // Debug first log if available
-  if (logs.length > 0) {
-    console.log("First log action_type:", logs[0].log.action_type);
-    console.log("First log previous_state:", logs[0].log.previous_state);
-    console.log("First log new_state:", logs[0].log.new_state);
-  }
+
+  useEffect(() => {
+    setDisplayedActivities(prev => {
+      return logs;
+    });
+  }, [logs])
+
+  usePolling(20000)
 
   return (
     <Card className="w-full">
       <CardHeader>
-        <CardTitle className="text-2xl font-bold text-right">יומן פעילויות</CardTitle>
+        <CardTitle className="text-2xl font-bold text-right">
+          <div className="flex justify-between mb-4">
+          יומן פעילויות 
+              <AddNote projectId={project_id} />
+          </div>
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <ScrollArea className="h-[600px] overflow-y-auto">

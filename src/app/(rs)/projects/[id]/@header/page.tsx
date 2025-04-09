@@ -1,13 +1,21 @@
 import { Button } from "@/components/ui/button";
 import { getProject } from "@/lib/queries/projects/getProject";
+import { getProjectManagerById } from "@/lib/queries/projects/getProjectManagers";
 import { Progress } from '@/components/ui/progress'
 import Link from 'next/link'
-import { ArrowRight, Edit, Trash2, Briefcase, Calendar, User } from "lucide-react";
+import { ArrowRight, Briefcase, Calendar, User, UserCog } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { format } from 'date-fns'
 import { statusNames } from "@/zod-schemas/projects";
 import { redirect } from "next/navigation";
 import FastActions from "../components/FastActions";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+
 export default async function ProjectHeader({
     params,
   }: {
@@ -22,6 +30,12 @@ export default async function ProjectHeader({
       const statusColor = project.status === "1" ? "bg-green-100 text-green-800" : project.status === "2" ? "bg-blue-100 text-blue-800" : project.status === "3" ? "bg-red-100 text-red-800" : "bg-gray-100 text-gray-800"
       // if (!project) return null
   
+      // Get project manager info if exists
+      let projectManager = null;
+      if (project.manager_id) {
+        projectManager = await getProjectManagerById(project.manager_id);
+      }
+      
       const budgetCurrency = formatCurrency(project.budget ? parseInt(project.budget) : null)
       const startDate = format(new Date(project.start_date), 'dd/MM/yyyy')
       const EndDate = (project.end_date  && format(new Date(project.end_date), 'dd/MM/yyyy') )
@@ -54,11 +68,46 @@ export default async function ProjectHeader({
                   <Briefcase className="h-4 w-4 text-gray-400 ml-2" />
                   <span className="text-sm">{project.department_name}</span>
               </div>
-              <div className="flex items-center">
-                  <User className="h-4 w-4 text-gray-400 ml-2" />
-                  {/* <img src="/placeholder.svg" alt="Project Owner" className="w-6 h-6 rounded-full ml-2" /> */}
-                  <span className="text-sm">{project.owner_last_name} {project.owner_first_name}</span>
-              </div>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex items-center">
+                        <User className="h-4 w-4 text-blue-500 ml-2" />
+                        <div className="flex flex-col">
+                          <span className="text-sm">{project.owner_last_name} {project.owner_first_name}</span>
+                          <span className="text-xs text-blue-500">מנהל פרויקט</span>
+                        </div>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>מנהל הפרויקט - משתמש במערכת</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              
+              {projectManager && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="flex items-center">
+                          <UserCog className="h-4 w-4 text-green-600 ml-2" />
+                          <div className="flex flex-col">
+                            <span className="text-sm">
+                              {projectManager.full_name}
+                              {projectManager.company_name && (
+                                <span className="text-gray-500 mr-1">({projectManager.company_name})</span>
+                              )}
+                            </span>
+                            <span className="text-xs text-green-600">מנהל חיצוני</span>
+                          </div>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>מנהל פרויקט חיצוני</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
           </section>
         </>
       )

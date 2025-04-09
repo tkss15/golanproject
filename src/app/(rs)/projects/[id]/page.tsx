@@ -1,11 +1,4 @@
-import ProjectDashboard from './@dashboard/page';
-import { getProject } from '@/lib/queries/projects/getProject';
+// This file re-exports the dashboard component for the main page
+import DashboardPage from "./@dashboard/page";
 
-export default async function ProjectDetailsPage({
-  params,
-}: {
-  params: { projectId: string }
-}) {
-
-  return null;  
-}
+export default DashboardPage;

@@ -60,7 +60,8 @@ export const projectEditors = pgTable('project_editors', {
   added_by: integer('added_by')
     .notNull()
     .references(() => users.id),  // Must be the project owner
-  is_active: boolean('is_active').default(true)
+  is_active: boolean('is_active').default(true),
+  role: varchar('role').notNull().default('viewer') // 'editor', 'viewer'
 });
 
 // Relations
@@ -86,7 +87,26 @@ export const projects = pgTable('projects', {
   contact_email: varchar('contact_email'),
   contact_phone: varchar('contact_phone'),
   created_at: timestamp('created_at').defaultNow(),
-  updated_at: timestamp('updated_at').defaultNow()
+  updated_at: timestamp('updated_at').defaultNow(),
+
+  manager_id: integer('manager_id').references(() => projectManagers.id)
+
+});
+
+// New table for project managers (can be internal or external)
+export const projectManagers = pgTable('project_managers', {
+  id: serial('id').primaryKey(),
+  full_name: varchar('full_name').notNull(),
+  company_name: varchar('company_name'),
+  position: varchar('position'),
+  email: varchar('email'),
+  phone: varchar('phone'),
+  is_external: boolean('is_external').default(false),
+  user_id: integer('user_id').references(() => users.id),  // Optional - for internal managers
+
+  created_at: timestamp('created_at').defaultNow(),
+  updated_at: timestamp('updated_at').defaultNow(),
+  is_active: boolean('is_active').default(true)
 });
 
 export const fundingSources = pgTable('funding_sources', {
@@ -117,7 +137,16 @@ export const projectFundingSourcesRelations = relations(projectFundingSources, (
     references: [fundingSources.id]
   })
 }));
-
+// Relations for project managers
+export const projectManagersRelations = relations(projectManagers, ({ one, many }) => ({
+  // Relation to internal user (if applicable)
+  user: one(users, {
+    fields: [projectManagers.user_id],
+    references: [users.id]
+  }),
+  // Relation to managed projects
+  managed_projects: many(projects, { relationName: 'managed_projects' })
+}));
 // In your schema.ts
 export const projectFiles = pgTable('project_files', {
   id: serial('id').primaryKey(),
@@ -186,7 +215,7 @@ export const statisticsRelation = relations(settlement_statistics, ({one}) => ({
     references: [settlements.settlement_id]
   })
 }))
-// Relations
+// Update project relations to include the manager
 export const projectsRelations = relations(projects, ({ one }) => ({
   department: one(departments, {
     fields: [projects.department_id],
@@ -197,7 +226,12 @@ export const projectsRelations = relations(projects, ({ one }) => ({
     references: [users.id],
     relationName: 'project_owner'
   }),
-  // editors: many(projectEditors)
+  // New relation to project manager
+  manager: one(projectManagers, {
+    fields: [projects.manager_id],
+    references: [projectManagers.id],
+    relationName: 'managed_projects'
+  })
 }));
 // // יחסים מטבלת projects
 // export const projectsRelations = relations(projects, ({ many }) => ({

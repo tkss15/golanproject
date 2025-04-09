@@ -16,9 +16,10 @@ import ExportFile from './exportFile'
 import FastActions from './FastActions'
 type Props = {
   project: getProjectProp
+  permission: 'editor' | 'viewer'
 }
 
-export async function Sidebar({project}: Props) {
+export async function Sidebar({project, permission}: Props) {
   const progress = 75
   const settlementProject = await getMainSettlementInProject(project.id);
   if(!settlementProject)
@@ -31,7 +32,9 @@ export async function Sidebar({project}: Props) {
           <CardTitle>פעולות מהירות</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-2">
-          <EditButton />
+          {permission && 
+            <EditButton />
+          }
           <FileUploadDialog project_id={project.id}/>
           <ExportFile project={project} />
         </CardContent>

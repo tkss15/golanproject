@@ -23,6 +23,7 @@ export async function getProject(project_id: number, tx?: any) {
         contact_phone: projects.contact_phone,
         created_at: projects.created_at,
         updated_at: projects.updated_at,
+        manager_id: projects.manager_id, // Added manager_id field
       })
       .from(projects)
       .leftJoin(departments, eq(projects.department_id, departments.id))
@@ -43,4 +44,3 @@ export async function deleteProject(project_id: number, tx?: any) {
       .where(eq(projects.id, project_id))
     return result;
 }
-

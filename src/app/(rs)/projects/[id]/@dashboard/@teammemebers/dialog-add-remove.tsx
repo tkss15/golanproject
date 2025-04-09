@@ -25,7 +25,8 @@ export default function NewMessageDialog({project_users}: {project_users: Invite
     const newInvitedUser: InvitedUser = {
       user: user,
       joined_date: new Date(),
-      added_by: {id: "-1"}
+      added_by: {id: "-1"},
+      role: 'viewer' // Default role is viewer
     }
     setSelectedUsers(prev =>
       prev.some(u => u.user.id === user.id)
@@ -113,10 +114,30 @@ export default function NewMessageDialog({project_users}: {project_users: Invite
           <DialogFooter>
             <div className="flex flex-col gap-2">
               {selectedUsers.length > 0 && (
-                <div className="flex gap-2">
-                  {selectedUsers.map(user => (
-                    <UserAvatar key={user.user.id} user={user.user} />
-                  ))}
+                <div className="space-y-4">
+                  <div className="flex flex-wrap gap-2">
+                    {selectedUsers.map(user => (
+                      <div key={user.user.id} className="flex flex-col items-center space-y-1">
+                        <UserAvatar user={user.user} />
+                        <select 
+                          className="text-xs p-1 border rounded w-16"
+                          value={user.role || 'viewer'}
+                          onChange={(e) => {
+                            const updatedUsers = selectedUsers.map(u => {
+                              if (u.user.id === user.user.id) {
+                                return { ...u, role: e.target.value };
+                              }
+                              return u;
+                            });
+                            setSelectedUsers(updatedUsers);
+                          }}
+                        >
+                          <option value="viewer">צופה</option>
+                          <option value="editor">עורך</option>
+                        </select>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
               <Button
