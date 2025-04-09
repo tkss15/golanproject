@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from '@/components/ui/badge'
-import { Calendar, Search, X } from 'lucide-react'
+import { Calendar, Search, X, Download } from 'lucide-react'
 import { format } from 'date-fns'
 import useDebounce from '@/hooks/useDebounce'
 import { Skeleton } from "@/components/ui/skeleton"
@@ -24,6 +24,8 @@ import { PaginationDemo } from '@/components/pagenation-component'
 import { useMediaQuery } from "@/hooks/useMediaQuery"
 import { SelectDepartment, SelectFunder } from './components/selectdepartment'
 import FilterComponent from './components/filtercomponent'
+import DialogExportProjects from './components/dialog-export-projects'
+
 type Props = {
   prop_departments: any[]
   prop_funding_sources: any[]
@@ -33,7 +35,8 @@ type Props = {
   projects?: any[],
   count: number,
   start_date?: string,
-  end_date?: string
+  end_date?: string,
+  settlements?: any[]
 }
 type ViewType = "מחלקות" | "מקורות מימון" 
 
@@ -46,7 +49,8 @@ export default function Home({
   prop_funding_sources, 
   count,
   start_date,
-  end_date 
+  end_date,
+  settlements = []
 }: Props) {
   const router = useRouter()
   const [selectedProjects, setSelectedProjects] = useState<any[]>(projects ?? [])
@@ -60,6 +64,7 @@ export default function Home({
   const [fundingSources, setFundingSources] = useState(prop_funding_sources);
   const debouncedSearchTerm = useDebounce(searchDepartment, 500);
   const isMobile = useMediaQuery("(max-width: 1024px)");
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const selectedDepartment = departments.find((department) => department.id === parseInt(prop_department_id ?? '0'));
@@ -235,9 +240,18 @@ export default function Home({
           >
             פרויקטים
           </motion.h2>
-          <Link href="/projects/add">
-            <Button>צור פרויקט חדש</Button>
-          </Link>
+          <div className="flex gap-2">
+            <Button 
+              onClick={() => setExportDialogOpen(true)}
+              className="flex items-center gap-2"
+            >
+              <Download className="h-4 w-4" />
+              ייצר דוח
+            </Button>
+            <Link href="/projects/add">
+              <Button>צור פרויקט חדש</Button>
+            </Link>
+          </div>
         </div>
         <div className='relative mb-4'>
           <div className='flex gap-2 items-center mb-2'>
@@ -413,6 +427,16 @@ export default function Home({
           {count > 0 && <PaginationDemo page_number={1} page_size={5} total_items={count} />}
         </div>
       </article>
+      
+      {/* Export Projects Dialog */}
+      {exportDialogOpen && (
+        <DialogExportProjects
+          open={exportDialogOpen}
+          onClose={() => setExportDialogOpen(false)}
+          departments={departments}
+          settlements={settlements}
+        />
+      )}
     </motion.section>
   )
 }
